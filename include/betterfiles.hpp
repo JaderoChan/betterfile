@@ -34,11 +34,16 @@
 #include <vector>
 #include <filesystem>
 
+#ifndef BETTERFILES_MACRO
+#define BETTERFILES_MACRO
+
 #define BF_ERROR_UNDEFINED_ "The undefined error be occured."
 #define BF_ERROR_FILE_OPEN_FAILED "The file open failed."
 #define BF_ERROR_INVALID_PATH "The specify path is invalid."
 #define BF_ERROR_INVALID_PARM "The specify parameter is invalid: "
 #define BF_ERROR_HINT  "The error be occurred in the function \"" __FUNCTION__ "\". "
+
+#endif // !BETTERFILES_MACRO
 
 namespace Bf
 {
