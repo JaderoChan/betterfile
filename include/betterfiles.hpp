@@ -27,15 +27,12 @@
 #ifndef BETTERFILES_HPP
 #define BETTERFILES_HPP
 
+#include <cstdint>
+
 #include <string>
-#include <string_view>
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <filesystem>
-
-#ifndef BETTERFILES_MACRO
-#define BETTERFILES_MACRO
 
 #define BF_ERROR_UNDEFINED_ "The undefined error be occured."
 #define BF_ERROR_FILE_OPEN_FAILED "The file open failed."
@@ -43,7 +40,20 @@
 #define BF_ERROR_INVALID_PARM "The specify parameter is invalid: "
 #define BF_ERROR_HINT  "The error be occurred in the function \"" __FUNCTION__ "\". "
 
-#endif // !BETTERFILES_MACRO
+#ifdef _MSVC_LANG
+#if _MSVC_LANG >= 201703L
+#define BETTERFILES_CPP17
+#endif
+#else
+#if _cpluscplus >= 201703L
+#define BETTERFILES_CPP17
+#endif
+#endif // !_MSVC_LANG
+
+#ifdef BETTERFILES_CPP17
+
+#include <string_view>
+#include <filesystem>
 
 namespace Bf
 {
@@ -183,8 +193,9 @@ inline std::string pathNormalizationC(std::string_view path) {
     return std::filesystem::path(path).lexically_normal().string();
 }
 
-inline void pathNormalization(std::string &path) {
+inline std::string &pathNormalization(std::string &path) {
     path = std::filesystem::path(path).lexically_normal().string();
+    return path;
 }
 
 inline bool rename(std::string_view oldPath, std::string_view newPath) {
@@ -274,6 +285,225 @@ inline uintmax_t copyDirectory(std::string_view src, std::string_view dest) {
 
 }
 
+#else
+
+#include <sys/stat.h>
+
+#ifdef _WIN32
+
+#include <io.h>
+#include <windows.h>
+
+#define access _access
+#define F_OK 0
+
+std::wstring stringToWString(const std::string &str) {
+    // Calculate the size of the buffer needed.
+    int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), NULL, 0);
+    // Allocate the buffer.
+    std::wstring wstr(size, 0);
+    // Perform the conversion.
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), &wstr[0], size);
+    return wstr;
+}
+
+#else
+#include <unistd.h>
+#include <dirent.h>
+#include <limits.h> // PATH_MAX
+#endif  // _WIN32
+
+namespace Bf
+{
+
+inline std::string pathNormalizationC(const std::string &path) {
+    if (path.empty())
+        return path;
+    std::string _path = path;
+    while (_path.back() == '/' || _path.back() == '\\')
+        _path.pop_back();
+    std::size_t pos = 0;
+    if (_path.empty())
+        return _path;
+    while ((pos = _path.find('\\')) != std::string::npos)
+        _path.replace(pos, 1, "/");
+    return _path;
+}
+
+inline std::string &pathNormalization(std::string &path) {
+    if (path.empty())
+        return path;
+    while (path.back() == '/' || path.back() == '\\')
+        path.pop_back();
+    std::size_t pos = 0;
+    if (path.empty())
+        return path;
+    while ((pos = path.find('\\')) != std::string::npos)
+        path.replace(pos, 1, "/");
+    return path;
+}
+
+inline bool isExists(const std::string &path) {
+    return access(path.c_str(), F_OK) != -1;
+}
+
+inline bool isExistsFile(const std::string &path) {
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0)
+        return false;
+#ifdef _WIN32
+    return path_stat.st_mode == _S_IFREG;
+#else
+    return S_ISREG(path_stat.st_mode);
+#endif // _WIN32
+}
+
+inline bool isExistsDirectory(const std::string &path) {
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0)
+        return false;
+#ifdef _WIN32
+    return path_stat.st_mode == _S_IFDIR;
+#else
+    return S_ISDIR(path_stat.st_mode);
+#endif // _WIN32
+
+}
+
+inline bool isEmptyFile(const std::string &path) {
+    struct stat path_stat;
+    if (stat(path.c_str(), &path_stat) != 0)
+        return false;
+    return path_stat.st_size == 0;
+}
+
+inline bool isEmptyDirectory(const std::string &path) {
+#ifdef _WIN32
+    WIN32_FIND_DATA findData;
+    HANDLE hFind = FindFirstFileW(stringToWString(path + "\\*").c_str(), &findData);
+
+    if (hFind == INVALID_HANDLE_VALUE)
+        return false;
+
+    int n = 0;
+    while (FindNextFileW(hFind, &findData) != 0)
+        if (++n > 2)
+            break;
+
+    FindClose(hFind);
+    // '.' and '..' are always present.
+    return n <= 2;
+#else
+    struct dirent *d;
+    DIR *dir = opendir(path.c_str());
+
+    if (dir == nullptr)
+        return false;
+
+    int n = 0;
+    while ((d = readdir(dir)) != nullptr)
+        if (++n > 2)
+            break;
+
+    closedir(dir);
+    // '.' and '..' are always present.
+    return n <= 2;
+#endif // _WIN32
+}
+
+inline bool isEmpty(const std::string &path) {
+    return isEmptyFile(path) || isEmptyDirectory(path);
+}
+
+inline std::string getCurrentPath() {
+    std::string result;
+#ifdef _WIN32
+    char path[MAX_PATH] {};
+    if (GetCurrentDirectoryA(MAX_PATH, path)) {
+        result = path;
+    } else {
+        // TODO
+    }
+#else
+    char path[PATH_MAX];
+    if (getcwd(path, PATH_MAX) != nullptr) {
+        result = path;
+    } else {
+        // TODO
+    }
+#endif // _WIN32
+    return result;
+}
+
+inline std::string getParentName(const std::string &path) {
+    std::string _path = pathNormalizationC(path);
+    if (_path.empty()) {
+        // TODO
+        return std::string();
+    }
+    std::size_t pos = _path.rfind('/');
+    if (pos == std::string::npos) {
+        // TODO
+        return std::string();
+    }
+    _path = _path.substr(0, pos);
+    pos = _path.rfind('/');
+    if (pos == std::string::npos)
+        return std::string();
+    return _path.substr(pos + 1);
+}
+
+inline std::vector<std::string> getAllDirectorys(const std::string &path, bool isRecursive = true) {
+
+}
+
+inline std::vector<std::string> getAllFiles(const std::string &path, bool isRecursive = true) {
+
+}
+
+inline uintmax_t getSize(const std::string &path) {
+
+}
+
+inline std::string getPathPrefix(const std::string &path) {
+}
+
+inline std::string getPathSuffix(const std::string &path) {
+}
+
+inline std::string getFileName(const std::string &path) {
+}
+
+inline std::string getFileExtension(const std::string &path) {
+}
+
+inline bool rename(const std::string &oldPath, const std::string &newPath) {
+
+}
+
+inline bool createDirectory(const std::string &path) {
+}
+
+inline bool deleteFile(const std::string &path) {
+}
+
+inline uintmax_t deleteDirectory(const std::string &path) {
+}
+
+inline uintmax_t deletes(const std::string &path) {
+}
+
+inline bool copyFile(const std::string &src, const std::string &dest, bool destIsFile = true) {
+}
+
+inline uintmax_t copyDirectory(const std::string &src, const std::string &dest) {
+
+}
+
+}
+
+#endif
+
 namespace Bf
 {
 
@@ -290,7 +520,7 @@ enum WritePolicy
 class File
 {
 public:
-    explicit File(std::string_view name) : mName(name), mData(nullptr) {}
+    explicit File(const std::string &name) : mName(name), mData(nullptr) {}
     explicit File(const File &other) : mData(nullptr) {
         mName = other.mName;
         if (other.mData == nullptr)
@@ -310,13 +540,13 @@ public:
         return File(*this);
     }
 
-    static File fromPath(std::string_view filePath) {
+    static File fromPath(const std::string &filePath) {
         if (!isExistsFile(filePath))
             throw BF_ERROR_INVALID_PATH;
         std::ifstream ifs(filePath.data(), std::ios_base::binary);
         if (!ifs.is_open())
             throw BF_ERROR_FILE_OPEN_FAILED;
-        File file(Bf::getPathSuffix(filePath));
+        File file(getPathSuffix(filePath));
         file << ifs;
         ifs.close();
         return file;
@@ -342,7 +572,7 @@ public:
         return mData->empty();
     }
 
-    void setName(std::string_view name) {
+    void setName(const std::string &name) {
         mName = name;
     }
     void clear() {
@@ -357,7 +587,7 @@ public:
             return;
         os << *mData;
     }
-    void write(std::string_view path, WritePolicy policy = Skip,
+    void write(const std::string &path, WritePolicy policy = Skip,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         std::string _path = path.data();
@@ -441,7 +671,7 @@ private:
 class Dir
 {
 public:
-    explicit Dir(std::string_view name) : mName(name), mSubFiles(nullptr), mSubDirs(nullptr) {}
+    explicit Dir(const std::string &name) : mName(name), mSubFiles(nullptr), mSubDirs(nullptr) {}
     explicit Dir(const Dir &other) : mSubFiles(nullptr), mSubDirs(nullptr) {
         mName = other.mName;
         if (other.mSubFiles != nullptr)
@@ -465,16 +695,16 @@ public:
         return Dir(*this);
     }
 
-    static Dir fromPath(std::string_view dirPath) {
+    static Dir fromPath(const std::string &dirPath) {
         if (!isExistsDirectory(dirPath))
             throw BF_ERROR_INVALID_PATH;
-        Dir root(Bf::getPathSuffix(dirPath));
+        Dir root(getPathSuffix(dirPath));
 
-        auto dirs = Bf::getAllDirectorys(dirPath, false);
+        auto dirs = getAllDirectorys(dirPath, false);
         for (auto &var : dirs)
             root << Dir::fromPath(var);
 
-        auto files = Bf::getAllFiles(dirPath, false);
+        auto files = getAllFiles(dirPath, false);
         for (auto &var : files)
             root << File::fromPath(var);
 
@@ -534,7 +764,7 @@ public:
         return (mSubFiles == nullptr || mSubFiles->empty()) &&
             (mSubDirs == nullptr || mSubDirs->empty());
     }
-    bool hasFile(std::string_view name) const {
+    bool hasFile(const std::string &name) const {
         if (mSubFiles == nullptr)
             return false;
         for (auto &var : *mSubFiles) {
@@ -543,7 +773,7 @@ public:
         }
         return false;
     }
-    bool hasDir(std::string_view name) const {
+    bool hasDir(const std::string &name) const {
         if (mSubDirs == nullptr)
             return false;
         for (auto &var : *mSubDirs) {
@@ -553,11 +783,11 @@ public:
         return false;
     }
 
-    void setName(std::string_view name) {
+    void setName(const std::string &name) {
         mName = name;
     }
 
-    File &file(std::string_view name) {
+    File &file(const std::string &name) {
         if (mSubFiles == nullptr)
             mSubFiles = new std::vector<File>();
         for (auto &var : *mSubFiles) {
@@ -567,7 +797,7 @@ public:
         mSubFiles->push_back(File(name));
         return mSubFiles->back();
     }
-    Dir &dir(std::string_view name) {
+    Dir &dir(const std::string &name) {
         if (mSubDirs == nullptr)
             mSubDirs = new std::vector<Dir>();
         for (auto &var : *mSubDirs) {
@@ -606,14 +836,14 @@ public:
     void add(Dir &&dir) {
         add(dir);
     }
-    void addFile(std::string_view name) {
+    void addFile(const std::string &name) {
         add(File(name));
     }
-    void addDir(std::string_view name) {
+    void addDir(const std::string &name) {
         add(Dir(name));
     }
 
-    void write(std::string_view path, WritePolicy policy = Skip,
+    void write(const std::string &path, WritePolicy policy = Skip,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         std::string root = std::string(path) + '/' + mName;
@@ -641,10 +871,10 @@ public:
             mSubDirs = new std::vector<Dir>(*other.mSubDirs);
         return *this;
     }
-    Dir &operator[](std::string_view name) {
+    Dir &operator[](const std::string &name) {
         return dir(name);
     }
-    File &operator()(std::string_view name) {
+    File &operator()(const std::string &name) {
         return file(name);
     }
     Dir &operator<<(File &file) {
