@@ -41,16 +41,12 @@
 #define BF_ERROR_HINT  "The error be occurred in the function \"" __FUNCTION__ "\". "
 
 #ifdef _MSVC_LANG
-#if _MSVC_LANG >= 201703L
-#define BETTERFILES_CPP17
-#endif
+#define BETTERFILES_CPPVERS _MSVC_LANG
 #else
-#if _cpluscplus >= 201703L
-#define BETTERFILES_CPP17
-#endif
-#endif // !_MSVC_LANG
+#define BETTERFILES_CPPVERS __cpluscplus
+#endif // _MSVC_LANG
 
-#ifdef BETTERFILES_CPP17
+#if BETTERFILES_CPPVERS >= 201703L
 
 #include <string_view>
 #include <filesystem>
