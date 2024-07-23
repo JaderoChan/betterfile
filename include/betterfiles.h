@@ -47,6 +47,8 @@
 BF_PATH_SEPARATOR '/'
 #endif // _WIN32
 
+#define BF_CHAR_END '\0'
+
 #ifdef _MSVC_LANG
 #define BF_CPPVERS _MSVC_LANG
 #else
@@ -324,7 +326,11 @@ inline std::wstring string2wstring(const std::string &string)
 {
     std::wstring result;
     int len = MultiByteToWideChar(CP_ACP, 0, string.c_str(), (int) string.size(), NULL, 0);
-    MultiByteToWideChar(CP_ACP, 0, string.c_str(), (int) string.size(), &result[0], len);
+    WCHAR *buffer = new WCHAR[len + 1];
+    MultiByteToWideChar(CP_ACP, 0, string.c_str(), (int) string.size(), buffer, len);
+    buffer[len] = BF_CHAR_END;
+    result = buffer;
+    delete[] buffer;
     return result;
 }
 
@@ -332,7 +338,11 @@ inline std::string wstring2string(const std::wstring &wstring)
 {
     std::string result;
     int len = WideCharToMultiByte(CP_ACP, 0, wstring.c_str(), (int) wstring.size(), NULL, 0, NULL, NULL);
-    WideCharToMultiByte(CP_ACP, 0, wstring.c_str(), (int) wstring.size(), &result[0], len, NULL, NULL);
+    char *buffer = new char[len + 1];
+    WideCharToMultiByte(CP_ACP, 0, wstring.c_str(), (int) wstring.size(), buffer, len, NULL, NULL);
+    buffer[len] = BF_CHAR_END;
+    result = buffer;
+    delete[] buffer;
     return result;
 }
 
