@@ -28,7 +28,6 @@
 #define BETTERFILES_H
 
 #include <cstdint> // uintmax_t
-#include <climits> // PATH_MAX
 
 #include <vector>
 #include <string>
@@ -73,20 +72,25 @@
 
 // Some char constexpr.
 #define BTF_CHARV_SPACE     ' '
+#define BTF_CHARV_DOT       '.'
+#define BTF_CHARV_SQUOT     '"'
+#define BTF_CHARV_DQUOT     '"'
 #define BTF_CHARV_END       '\0'
 #define BTF_CHARV_ENTER     '\n'
+
+#define BTF_EMPTY_STR       ""
 
 // Exception infos.
 #ifndef BTF_ERROR_TYPE // Just for the code block to be foldable.
 #define BTF_ERROR_INFO
 #define BTF_ERR_UNDEFINED             "The undefined error."
+#define BTF_ERR_FAILED_OSAPI          "Failed to process in OS API."
 #define BTF_ERR_FILE_OPEN_FAILED      "Failed to open file."
 #define BTF_ERR_INVALID_PATH          "The invalid path."
 #define BTF_ERR_INVALID_PARM          "The invalid parameter."
 #define BTF_ERR_UNEXISTS_PATH         "The path is not exists."
 #define BTF_ERR_CP                    "The unsupported character set."
 #endif // !BTF_ERROR_INFO
-
 
 namespace Btf
 {
@@ -140,6 +144,7 @@ namespace Fs = std::filesystem;
 #ifdef _WIN32
 #include <io.h>
 #include <windows.h>
+#include <ShlObj.h>
 
 #undef min
 #undef max
@@ -156,7 +161,7 @@ namespace Btf
 {
 // BetterFiles's aux functions.
 
-BTF_NODISCARD BTF_INLINE std::wstring string2wstring(const std::string &str) {
+BTF_NODISCARD BTF_INLINE std::wstring string2wstring(const String &str) {
     std::wstring result;
 #ifdef _WIN32
     int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), NULL, 0);
@@ -177,8 +182,8 @@ BTF_NODISCARD BTF_INLINE std::wstring string2wstring(const std::string &str) {
     return result;
 }
 
-BTF_NODISCARD BTF_INLINE std::string wstring2string(const std::wstring &wstr) {
-    std::string result;
+BTF_NODISCARD BTF_INLINE String wstring2string(const std::wstring &wstr) {
+    String result;
 #ifdef _WIN32
     int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
     if (len == 0) {
@@ -198,6 +203,13 @@ BTF_NODISCARD BTF_INLINE std::string wstring2string(const std::wstring &wstr) {
     return result;
 }
 
+#ifdef _WIN32
+HANDLE getFileHandle(const String &path) {
+    WIN32_FIND_DATAA fd;
+    return FindFirstFileA(path.c_str(), &fd);
+}
+#endif // _WIN32
+
 }
 
 #endif // BTF_CPP17
@@ -210,46 +222,87 @@ namespace Btf
 // 1. discard the path separator char at end.
 // 2. merge the sequential path separator.
 // 3. convert the path separator to suit OS.
+// @param removeDQuot If it is true, discard the double quotation mark '"'.
 // @note Do not change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
-BTF_NODISCARD BTF_INLINE String normalizePathC(const String &path) {
+// @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
+BTF_NODISCARD BTF_INLINE String normalizePathC(const String &path, bool removeDQuot = true) {
 #ifdef BTF_CPP17
-    return Fs::path(path).lexically_normal().string();
+    String _path = Fs::path(path).lexically_normal().string();
 #else
-    if (path.empty())
-        return path;
     String _path = path;
-    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX)
+    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX) {
         _path.pop_back();
-    size_t pos = 0;
-    while ((pos = _path.find('\\')) != String::npos)
-        _path.replace(pos, 1, "/");
-    return _path;
+    }
+    size_t len = 0;
+    for (size_t pos = 0; pos < _path.size(); ++pos) {
+        if (removeDQuot && _path[pos] == BTF_CHARV_DQUOT) {
+            _path.erase(pos, 1);
+            continue;
+        }
+#ifdef _WIN32
+        if (_path[pos] == BTF_PATH_SEPARATOR_LINUX) {
+            _path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_WIN);
+        }
+#else
+        if (_path[pos] == BTF_PATH_SEPARATOR_WIN) {
+            _path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_LINUX);
+        }
+#endif // _WIN32
+        if (_path[pos] == BTF_PATH_SEPARATOR) {
+            ++len;
+        } else {
+            if (len > 1) {
+                _path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
+            }
+            len = 0;
+        }
+    }
 #endif // BTF_CPP17
+    return _path;
 }
 
 // @brief Normalize path following:
 // 1. discard the path separator char at end.
 // 2. merge the sequential path separator.
 // 3. convert the path separator to suit OS.
+// @param removeDQuot If it is true, discard the double quotation mark '"'.
 // @note Do change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
-BTF_NODISCARD BTF_INLINE String &normalizePath(String &path) {
+// @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
+BTF_INLINE String &normalizePath(String &path, bool removeDQuot = true) {
 #ifdef BTF_CPP17
     path = Fs::path(path).lexically_normal().string();
-    return path;
 #else
-    if (path.empty())
-        return path;
-    while (path.back() == '/' || path.back() == '\\')
+    while (path.back() == BTF_PATH_SEPARATOR_WIN || path.back() == BTF_PATH_SEPARATOR_LINUX) {
         path.pop_back();
-    size_t pos = 0;
-    if (path.empty())
-        return path;
-    while ((pos = path.find('\\')) != String::npos)
-        path.replace(pos, 1, "/");
-    return path;
+    }
+    size_t len = 0;
+    for (size_t pos = 0; pos < path.size(); ++pos) {
+        if (removeDQuot && path[pos] == BTF_CHARV_DQUOT) {
+            path.erase(pos, 1);
+            continue;
+        }
+#ifdef _WIN32
+        if (path[pos] == BTF_PATH_SEPARATOR_LINUX) {
+            path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_WIN);
+        }
+#else
+        if (path[pos] == BTF_PATH_SEPARATOR_WIN) {
+            path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_LINUX);
+        }
+#endif // _WIN32
+        if (path[pos] == BTF_PATH_SEPARATOR) {
+            ++len;
+        } else {
+            if (len > 1) {
+                path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
+            }
+            len = 0;
+        }
+    }
 #endif // BTF_CPP17
+    return path;
 }
 
 // @brief Get the normal path which discard the filename and extension.
@@ -258,9 +311,26 @@ BTF_NODISCARD BTF_INLINE String getPathPrefix(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).parent_path().string();
 #else
-
+    size_t posw = path.rfind(BTF_PATH_SEPARATOR_WIN);
+    size_t posl = path.rfind(BTF_PATH_SEPARATOR_LINUX);
+    size_t pos = 0;
+    if (posw == path.npos && posl == path.npos) {
+        return path;
+    } else {
+        if (posw == path.npos) {
+            pos = posl;
+        } else if (posl == path.npos) {
+            pos = posw;
+        } else {
+            pos = std::max({ posw, posl });
+        }
+    }
+    String _path = path.substr(0, pos);
+    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX) {
+        _path.pop_back();
+    }
+    return _path;
 #endif // BTF_CPP17
-
 }
 
 // @brief Get the normal path which just reserve the filename and extension.
@@ -269,7 +339,24 @@ BTF_NODISCARD BTF_INLINE String getPathSuffix(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().string();
 #else
-
+    size_t posw = path.rfind(BTF_PATH_SEPARATOR_WIN);
+    size_t posl = path.rfind(BTF_PATH_SEPARATOR_LINUX);
+    size_t pos = 0;
+    if (posw == path.npos && posl == path.npos) {
+        return path;
+    } else {
+        if (posw == path.npos) {
+            pos = posl;
+        } else if (posl == path.npos) {
+            pos = posw;
+        } else {
+            pos = std::max({ posw, posl });
+        }
+    }
+    if (pos == path.size() - 1) {
+        return BTF_EMPTY_STR;
+    }
+    return path.substr(pos + 1);
 #endif // BTF_CPP17
 }
 
@@ -279,7 +366,13 @@ BTF_NODISCARD BTF_INLINE String getFileName(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().replace_extension().string();
 #else
-
+    String _path = getPathSuffix(path);
+    size_t pos = _path.rfind(BTF_CHARV_DOT);
+    if (pos == _path.npos) {
+        return _path;
+    } else {
+        return _path.substr(0, pos);
+    }
 #endif // BTF_CPP17
 }
 
@@ -290,7 +383,16 @@ BTF_NODISCARD BTF_INLINE String getFileExtension(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().extension().string();
 #else
-
+    String _path = getPathSuffix(path);
+    size_t pos = _path.rfind(BTF_CHARV_DOT);
+    if (pos == _path.npos) {
+        return _path;
+    } else {
+        if (pos == _path.size() - 1) {
+            return BTF_EMPTY_STR;
+        }
+        return _path.substr(pos + 1);
+    }
 #endif // BTF_CPP17
 }
 
@@ -300,28 +402,14 @@ BTF_NODISCARD BTF_INLINE String getParentName(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).parent_path().filename().string();
 #else
-    String _path = pathNormalizationC(path);
-    if (_path.empty()) {
-        // TODO
-        return String();
-    }
-    size_t pos = _path.rfind('/');
-    if (pos == String::npos) {
-        // TODO
-        return String();
-    }
-    _path = _path.substr(0, pos);
-    pos = _path.rfind('/');
-    if (pos == String::npos)
-        return String();
-    return _path.substr(pos + 1);
+    return getPathSuffix(getPathPrefix(path));
 #endif // BTF_CPP17
 }
 
-// @brief Concatenate and normalize the path.
-// @example "C:/path_to" "file.ext" => "C:\path_to\file.ext"
+// @brief Concatenate the path with prefered separator.
+// @example "C:/path_to" "file.ext" => "C:/path_to\file.ext"
 BTF_NODISCARD BTF_INLINE String pathcat(const String &path1, const String &path2) {
-    return normalizePathC(path1 + BTF_PATH_SEPARATOR + path2);
+    return path1 + BTF_PATH_SEPARATOR + path2;
 }
 
 // @brief Whether file or directory exists.
@@ -329,7 +417,7 @@ BTF_NODISCARD BTF_INLINE bool isExists(const String &path) {
 #ifdef BTF_CPP17
     return Fs::exists(path);
 #else
-    return BTF_ACCESS(normalizaPathC(path).c_str(), BTF_F_OK) != -1;
+    return BTF_ACCESS(path.c_str(), BTF_F_OK) != -1;
 #endif // BTF_CPP17
 }
 
@@ -440,49 +528,91 @@ BTF_INLINE String getCurrentPath() {
 #ifdef BTF_CPP17
     return Fs::current_path().string();
 #else
-    String result;
 #ifdef _WIN32
-    BTF_CAHR path[MAX_PATH] {};
-    if (GetCurrentDirectoryA(MAX_PATH, path)) {
-        result = path;
+    char path[MAX_PATH];
+    if (GetCurrentDirectoryA(MAX_PATH, path) != 0) {
+        return path;
     } else {
-        // TODO
+        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
+                                  "Error in GetCurrentDirectoryA(), the error code is " + std::to_string(GetLastError())));
     }
 #else
-    BTF_CHAR path[PATH_MAX];
+    char path[PATH_MAX];
     if (getcwd(path, PATH_MAX) != nullptr) {
-        result = path;
+        return path;
     } else {
-        // TODO
+        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
+                                  "Error in getcwd()."));
     }
 #endif // _WIN32
+#endif // BTF_CPP17
+}
+
+// TODO comment.
+BTF_NODISCARD BTF_INLINE uintmax_t getFileSize(const String &path) {
+    if (!isExistsFile(path)) {
+        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+    }
+#ifdef BTF_CPP17
+    return Fs::file_size(path);
+#else
+#ifdef _WIN32
+    DWORD size = GetFileSize(getFileHandle(path), NULL);
+    if (size == INVALID_FILE_SIZE) {
+        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
+                                  "Error in GetFileSize(), the error code is " + std::to_string(GetLastError())));
+    }
+    return size;
+#else
+    // TODO
+#endif // _WIN32
+#endif // BTF_CPP17
+}
+
+// TODO comment.
+BTF_NODISCARD BTF_INLINE uintmax_t getDirectorySize(const String &path) {
+    uintmax_t result = 0;
+    if (!isExistsDirectory(path)) {
+        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+    }
+#ifdef BTF_CPP17
+    for (auto &var : Fs::recursive_directory_iterator(path)) {
+        result += var.file_size();
+    }
     return result;
+#else
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
 // TODO comment.
 BTF_NODISCARD BTF_INLINE uintmax_t getSize(const String &path) {
-    uintmax_t result = 0;
-#ifdef BTF_CPP17
     if (isExistsFile(path)) {
-        result = Fs::file_size(path);
+        return getFileSize(path);
     } else if (isExistsDirectory(path)) {
-        for (auto &var : Fs::recursive_directory_iterator(path)) {
-            result += var.file_size();
-        }
+        return getDirectorySize(path);
+    } else {
+        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
-
-    return result;
-#else
-
-#endif // BTF_CPP17
 }
 
 BTF_INLINE bool createDirectory(const String &path) {
 #ifdef BTF_CPP17
     return Fs::create_directories(path);
 #else
-
+#ifdef _WIN32
+    if (SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS) {
+        return true;
+    } else {
+        return false;
+    }
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -494,7 +624,15 @@ BTF_INLINE bool deleteFile(const String &path) {
 #ifdef BTF_CPP17
     return Fs::remove(path);
 #else
-
+#ifdef _WIN32
+    if (DeleteFileA(path.c_str()) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -506,20 +644,23 @@ BTF_INLINE uintmax_t deleteDirectory(const String &path) {
 #ifdef BTF_CPP17
     return Fs::remove_all(path);
 #else
-
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
 // @return If the specified path is not exists or failed to delete, return 0, else return count of deleted file.
 BTF_INLINE uintmax_t deletes(const String &path) {
-    if (!isExists(path)) {
+    if (isExistsFile(path)) {
+        return deleteFile(path) ? 1 : 0;
+    } else if (isExistsDirectory(path)) {
+        return deleteDirectory(path);
+    } else {
         return 0;
     }
-#ifdef BTF_CPP17
-    return (deleteFile(path) == true ? 1 : 0) + deleteDirectory(path);
-#else
-
-#endif // BTF_CPP17
 }
 
 // @brief Rename(move) the file or directory to a new location.
@@ -556,7 +697,11 @@ BTF_INLINE bool rename(const String &src, const String &dst,
     }
     return true;
 #else
-
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -576,20 +721,19 @@ BTF_INLINE bool copyFile(const String &src, const String &dst,
     if (!isExistsFile(src) || src == _dst) {
         return false;
     }
+    if (!dstIsEnd && !isExistsDirectory(dst)) {
+        createDirectory(dst);
+    }
 #ifdef BTF_CPP17
     Fs::copy_options cop = wp == Skip ?
         Fs::copy_options::skip_existing : Fs::copy_options::overwrite_existing;
-
-    if (dstIsEnd) {
-        return Fs::copy_file(src, _dst, cop);
-    } else {
-        if (!isExistsDirectory(dst)) {
-            createDirectory(dst);
-        }
-        return Fs::copy_file(src, _dst, cop);
-    }
+    return Fs::copy_file(src, _dst, cop);
 #else
-
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -608,21 +752,20 @@ BTF_INLINE bool copyDirectory(const String &src, const String &dst,
     if (!isExistsDirectory(src) || src == dst) {
         return false;
     }
+    if (!dstIsEnd && !isExistsDirectory(dst)) {
+        createDirectory(dst);
+    }
 #ifdef BTF_CPP17
     Fs::copy_options cop = wp == Skip ?
         Fs::copy_options::skip_existing : Fs::copy_options::overwrite_existing;
-
-    if (dstIsEnd) {
-        Fs::copy(src, _dst, cop);
-    } else {
-        if (!isExistsDirectory(dst)) {
-            createDirectory(dst);
-        }
-        Fs::copy(src, _dst, cop);
-    }
+    Fs::copy(src, _dst, cop);
     return true;
 #else
-
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -641,7 +784,7 @@ BTF_INLINE bool copys(const String &src, const String &dst,
 // TODO comment
 template<bool isRecursive = true>
 BTF_NODISCARD BTF_INLINE std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nullptr,
-                                               bool (*filter) (const String &) = nullptr)
+                                                             bool (*filter) (const String &) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -694,14 +837,18 @@ BTF_NODISCARD BTF_INLINE std::pair<Strings, Strings> getAlls(const String &path,
 
     return std::pair<Strings, Strings>(files, dirs);
 #else
+#ifdef _WIN32
 
+#else
+
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
 // TODO comment
 template<bool isRecursive = true>
 BTF_NODISCARD BTF_INLINE Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
-                               bool (*filter) (const String &) = nullptr)
+                                             bool (*filter) (const String &) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -745,14 +892,18 @@ BTF_NODISCARD BTF_INLINE Strings getAllFiles(const String &path, Strings *errorP
 
     return files;
 #else
+#ifdef _WIN32
 
+#else
+
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
 // TODO comment.
 template<bool isRecursive = true>
 BTF_NODISCARD BTF_INLINE Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
-                                    bool (*filter) (const String &) = nullptr)
+                                                  bool (*filter) (const String &) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -796,7 +947,11 @@ BTF_NODISCARD BTF_INLINE Strings getAllDirectorys(const String &path, Strings *e
 
     return dirs;
 #else
+#ifdef _WIN32
 
+#else
+
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -816,7 +971,6 @@ BTF_INLINE bool createFileSymlink(const String &src, const String &dst,
     if (!isExistsFile(src) || src == _dst) {
         return false;
     }
-#ifdef BTF_CPP17
     if (isExistsFile(_dst)) {
         if (wp == Skip) {
             return true;
@@ -824,19 +978,22 @@ BTF_INLINE bool createFileSymlink(const String &src, const String &dst,
             deleteFile(_dst);
         }
     }
-
-    if (dstIsEnd) {
-        Fs::create_symlink(src, _dst);
-    } else {
-        if (!isExistsDirectory(dst)) {
-            createDirectory(dst);
-        }
-        Fs::create_symlink(src, _dst);
+    if (!dstIsEnd && !isExistsDirectory(dst)) {
+        createDirectory(dst);
     }
-
+#ifdef BTF_CPP17
+    Fs::create_symlink(src, _dst);
     return true;
 #else
-
+#ifdef _WIN32
+    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -856,7 +1013,6 @@ BTF_INLINE bool createDirectorySymlink(const String &src, const String &dst,
     if (!isExistsDirectory(src) || src == _dst) {
         return false;
     }
-#ifdef BTF_CPP17
     if (isExistsDirectory(_dst)) {
         if (wp == Skip) {
             return true;
@@ -864,19 +1020,22 @@ BTF_INLINE bool createDirectorySymlink(const String &src, const String &dst,
             deleteDirectory(_dst);
         }
     }
-
-    if (dstIsEnd) {
-        Fs::create_directory_symlink(src, _dst);
-    } else {
-        if (!isExistsDirectory(dst)) {
-            createDirectory(dst);
-        }
-        Fs::create_directory_symlink(src, _dst);
+    if (!dstIsEnd && !isExistsDirectory(dst)) {
+        createDirectory(dst);
     }
-
+#ifdef BTF_CPP17
+    Fs::create_directory_symlink(src, _dst);
     return true;
 #else
-
+#ifdef _WIN32
+    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
@@ -902,16 +1061,17 @@ BTF_INLINE bool createSymlink(const String &src, const String &dst,
 // if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
 // @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool createHardLink(const String &src, const String &dst,
+BTF_INLINE bool createHardlink(const String &src, const String &dst,
                                WritePolicy wp = Skip, bool dstIsEnd = true)
 {
     // Get the finally path of to.
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+
     // If the src path not exists return false, do nothing.
     if (!isExistsFile(src) || src == _dst) {
         return false;
     }
-#ifdef BTF_CPP17
+
     if (isExistsFile(_dst)) {
         if (wp == Skip) {
             return true;
@@ -921,18 +1081,37 @@ BTF_INLINE bool createHardLink(const String &src, const String &dst,
         }
     }
 
-    if (dstIsEnd) {
-        Fs::create_hard_link(src, _dst);
-    } else {
-        if (!isExistsDirectory(dst)) {
-            createDirectory(dst);
-        }
-        Fs::create_hard_link(src, _dst);
+    if (!dstIsEnd && !isExistsDirectory(dst)) {
+        createDirectory(dst);
     }
-
+#ifdef BTF_CPP17
+    Fs::create_hard_link(src, _dst);
     return true;
 #else
+#ifdef _WIN32
+    if (CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) == 0) {
+        return false;
+    } else {
+        return true;
+    }
+#else
+    // TODO
+#endif // _WIN32
+#endif // BTF_CPP17
+}
 
+intmax_t getHardlinkCount(const String &path) {
+    if (!isExists(path)) {
+        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+    }
+#ifdef BTF_CPP17
+    return Fs::hard_link_count(path);
+#else
+#ifdef _WIN32
+    // TODO
+#else
+    // TODO
+#endif // _WIN32
 #endif // BTF_CPP17
 }
 
