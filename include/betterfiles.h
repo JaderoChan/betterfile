@@ -27,22 +27,18 @@
 #ifndef BETTERFILES_H
 #define BETTERFILES_H
 
-#include <cstdint> // uintmax_t
-
+#include <cstdint>  // uintmax_t
+#include <cstddef>  // size_t 
 #include <vector>
 #include <string>
 #include <fstream>
 #include <iostream>
 #include <exception>
 
-#ifndef __cplusplus
-#error BetterFiles library must be used in c++.
-#endif // !__cplusplus
-
 #ifdef _MSVC_LANG
 #define BTF_CPPVERS     _MSVC_LANG
 #else
-#define Bf_CPPVERS      __cpluscplus
+#define BTF_CPPVERS      __cplusplus
 #endif // _MSVC_LANG
 
 #if BTF_CPPVERS >= 201703L
@@ -53,13 +49,6 @@
 //#if BTF_CPPVERS < 201103L
 //#error BetterFiles library must be used in c++11 or newer.
 //#endif // BTF_CPPVERS < 201103L
-
-// Just be used for inline function and avoid redefine.
-#define BTF_INLINE          inline
-// The function has this attribute indicates it's return value not should discarded.
-#define BTF_NODISCARD       [[nodiscard]]
-// The function has this attribute indicates it's may removed in the future.
-#define BTF_DEPRECATED      [[deprecated]]
 
 #define BTF_PATH_SEPARATOR_WIN          '\\'
 #define BTF_PATH_SEPARATOR_LINUX        '/'
@@ -94,11 +83,16 @@
 
 namespace Btf
 {
+
 // BetterFiles's type redefine.
+
+typedef unsigned char uchar;
+typedef unsigned int uint;
 
 template<typename T>
 using Vec = std::vector<T>;
 using String = std::string;
+using WString = std::wstring;
 using Strings = Vec<String>;
 using IOStream = std::iostream;
 using IStream = std::istream;
@@ -115,11 +109,12 @@ using Exception = std::exception;
 
 namespace Btf
 {
+
 // BetterFiles's constexprs, consts, and enums.
 
-constexpr const int kBufferSize = 4096;
+constexpr uint kBufferSize = 4096;
 
-enum WritePolicy : unsigned char
+enum WritePolicy : uchar
 {
     // Skip write process when the file exists.
     Skip = 1,
@@ -159,10 +154,11 @@ namespace Fs = std::filesystem;
 
 namespace Btf
 {
+
 // BetterFiles's aux functions.
 
-BTF_NODISCARD BTF_INLINE std::wstring string2wstring(const String &str) {
-    std::wstring result;
+inline WString string2wstring(const String &str) {
+    WString result;
 #ifdef _WIN32
     int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), NULL, 0);
     if (len == 0) {
@@ -182,7 +178,7 @@ BTF_NODISCARD BTF_INLINE std::wstring string2wstring(const String &str) {
     return result;
 }
 
-BTF_NODISCARD BTF_INLINE String wstring2string(const std::wstring &wstr) {
+inline String wstring2string(const WString &wstr) {
     String result;
 #ifdef _WIN32
     int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
@@ -216,6 +212,7 @@ HANDLE getFileHandle(const String &path) {
 
 namespace Btf
 {
+
 // BetterFiles's utility functions.
 
 // @brief Normalize path following:
@@ -226,7 +223,7 @@ namespace Btf
 // @note Do not change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
 // @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
-BTF_NODISCARD BTF_INLINE String normalizePathC(const String &path, bool removeDQuot = true) {
+inline String normalizePathC(const String &path, bool removeDQuot = true) {
 #ifdef BTF_CPP17
     String _path = Fs::path(path).lexically_normal().string();
 #else
@@ -270,7 +267,7 @@ BTF_NODISCARD BTF_INLINE String normalizePathC(const String &path, bool removeDQ
 // @note Do change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
 // @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
-BTF_INLINE String &normalizePath(String &path, bool removeDQuot = true) {
+inline String &normalizePath(String &path, bool removeDQuot = true) {
 #ifdef BTF_CPP17
     path = Fs::path(path).lexically_normal().string();
 #else
@@ -307,7 +304,7 @@ BTF_INLINE String &normalizePath(String &path, bool removeDQuot = true) {
 
 // @brief Get the normal path which discard the filename and extension.
 // @example "C:/path_to/file.ext" => "C:\path_to"
-BTF_NODISCARD BTF_INLINE String getPathPrefix(const String &path) {
+inline String getPathPrefix(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).parent_path().string();
 #else
@@ -335,7 +332,7 @@ BTF_NODISCARD BTF_INLINE String getPathPrefix(const String &path) {
 
 // @brief Get the normal path which just reserve the filename and extension.
 // @example "C:/path_to/file.ext" => "file.ext"
-BTF_NODISCARD BTF_INLINE String getPathSuffix(const String &path) {
+inline String getPathSuffix(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().string();
 #else
@@ -362,7 +359,7 @@ BTF_NODISCARD BTF_INLINE String getPathSuffix(const String &path) {
 
 // @brief Get the file's name, and not include extension.
 // @example "C:/path_to/file.ext" => "file"
-BTF_NODISCARD BTF_INLINE String getFileName(const String &path) {
+inline String getFileName(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().replace_extension().string();
 #else
@@ -379,7 +376,7 @@ BTF_NODISCARD BTF_INLINE String getFileName(const String &path) {
 // @brief Get the file's extension.
 // @return Include the symbol dit '.'.
 // @example "C:/path_to/file.ext" => ".ext"
-BTF_NODISCARD BTF_INLINE String getFileExtension(const String &path) {
+inline String getFileExtension(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).filename().extension().string();
 #else
@@ -398,7 +395,7 @@ BTF_NODISCARD BTF_INLINE String getFileExtension(const String &path) {
 
 // @brief Get the specified path's previously directory path's name.
 // @example "C:/path_to/file.ext" => "path_to"
-BTF_NODISCARD BTF_INLINE String getParentName(const String &path) {
+inline String getParentName(const String &path) {
 #ifdef BTF_CPP17
     return Fs::path(path).parent_path().filename().string();
 #else
@@ -408,12 +405,22 @@ BTF_NODISCARD BTF_INLINE String getParentName(const String &path) {
 
 // @brief Concatenate the path with prefered separator.
 // @example "C:/path_to" "file.ext" => "C:/path_to\file.ext"
-BTF_NODISCARD BTF_INLINE String pathcat(const String &path1, const String &path2) {
+inline String pathcat(const String &path1, const String &path2) {
     return path1 + BTF_PATH_SEPARATOR + path2;
 }
 
+// @brief Get the filename of the path (no include file extension) and chang the filename to new filename.
+// @param path The full path.
+// @param newname The new filename.
+// @return Return the full path after change the filename.
+// @example path = "C:/path_to/oldfile.dat" newname = "newfile" => "C:/path_to/newfile.dat"
+// @attention Just base string, not check the actually path.
+inline String changeFileName(const String &path, const String &newname) {
+    return pathcat(getPathPrefix(path), newname + getFileExtension(path));
+}
+
 // @brief Whether file or directory exists.
-BTF_NODISCARD BTF_INLINE bool isExists(const String &path) {
+inline bool isExists(const String &path) {
 #ifdef BTF_CPP17
     return Fs::exists(path);
 #else
@@ -422,7 +429,7 @@ BTF_NODISCARD BTF_INLINE bool isExists(const String &path) {
 }
 
 // @brief Whether the file exists.
-BTF_NODISCARD BTF_INLINE bool isExistsFile(const String &path) {
+inline bool isExistsFile(const String &path) {
 #ifdef BTF_CPP17
     return isExists(path) && Fs::is_regular_file(path);
 #else
@@ -438,7 +445,7 @@ BTF_NODISCARD BTF_INLINE bool isExistsFile(const String &path) {
 }
 
 // @brief Whether the directory exists.
-BTF_NODISCARD BTF_INLINE bool isExistsDirectory(const String &path) {
+inline bool isExistsDirectory(const String &path) {
 #ifdef BTF_CPP17
     return isExists(path) && Fs::is_directory(path);
 #else
@@ -455,7 +462,7 @@ BTF_NODISCARD BTF_INLINE bool isExistsDirectory(const String &path) {
 
 // @brief Whether file is empty. If it is empty indicates it's size is 0.
 // @note If the file is not exists, throw exception.
-BTF_NODISCARD BTF_INLINE bool isEmptyFile(const String &path) {
+inline bool isEmptyFile(const String &path) {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -471,7 +478,7 @@ BTF_NODISCARD BTF_INLINE bool isEmptyFile(const String &path) {
 
 // @brief Whether directory is empty. If it is empty indicates it's not contains anything.
 // @note If the directory is not exists, throw exception.
-BTF_NODISCARD BTF_INLINE bool isEmptyDirectory(const String &path) {
+inline bool isEmptyDirectory(const String &path) {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -516,7 +523,7 @@ BTF_NODISCARD BTF_INLINE bool isEmptyDirectory(const String &path) {
 // Empty file indicates it's size is 0.
 // Empty directory indicates it's not contains anything.
 // @note If the file or directory is not exists, throw exception.
-BTF_NODISCARD BTF_INLINE bool isEmpty(const String &path) {
+inline bool isEmpty(const String &path) {
     if (!isExists(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -524,7 +531,7 @@ BTF_NODISCARD BTF_INLINE bool isEmpty(const String &path) {
 }
 
 // @brief Get current working directory path of program.
-BTF_INLINE String getCurrentPath() {
+inline String getCurrentPath() {
 #ifdef BTF_CPP17
     return Fs::current_path().string();
 #else
@@ -534,7 +541,8 @@ BTF_INLINE String getCurrentPath() {
         return path;
     } else {
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
-                                  "Error in GetCurrentDirectoryA(), the error code is " + std::to_string(GetLastError())));
+                                  "Error in GetCurrentDirectoryA(), the error code is " +
+                                  std::to_string(GetLastError())));
     }
 #else
     char path[PATH_MAX];
@@ -549,7 +557,7 @@ BTF_INLINE String getCurrentPath() {
 }
 
 // TODO comment.
-BTF_NODISCARD BTF_INLINE uintmax_t getFileSize(const String &path) {
+inline uintmax_t getFileSize(const String &path) {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -560,7 +568,8 @@ BTF_NODISCARD BTF_INLINE uintmax_t getFileSize(const String &path) {
     DWORD size = GetFileSize(getFileHandle(path), NULL);
     if (size == INVALID_FILE_SIZE) {
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
-                                  "Error in GetFileSize(), the error code is " + std::to_string(GetLastError())));
+                                  "Error in GetFileSize(), the error code is " +
+                                  std::to_string(GetLastError())));
     }
     return size;
 #else
@@ -570,7 +579,7 @@ BTF_NODISCARD BTF_INLINE uintmax_t getFileSize(const String &path) {
 }
 
 // TODO comment.
-BTF_NODISCARD BTF_INLINE uintmax_t getDirectorySize(const String &path) {
+inline uintmax_t getDirectorySize(const String &path) {
     uintmax_t result = 0;
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -590,7 +599,7 @@ BTF_NODISCARD BTF_INLINE uintmax_t getDirectorySize(const String &path) {
 }
 
 // TODO comment.
-BTF_NODISCARD BTF_INLINE uintmax_t getSize(const String &path) {
+inline uintmax_t getSize(const String &path) {
     if (isExistsFile(path)) {
         return getFileSize(path);
     } else if (isExistsDirectory(path)) {
@@ -600,7 +609,7 @@ BTF_NODISCARD BTF_INLINE uintmax_t getSize(const String &path) {
     }
 }
 
-BTF_INLINE bool createDirectory(const String &path) {
+inline bool createDirectory(const String &path) {
 #ifdef BTF_CPP17
     return Fs::create_directories(path);
 #else
@@ -617,7 +626,7 @@ BTF_INLINE bool createDirectory(const String &path) {
 }
 
 // @return If the specified path is not exists or failed to delete, return false, else return true.
-BTF_INLINE bool deleteFile(const String &path) {
+inline bool deleteFile(const String &path) {
     if (!isExistsFile(path)) {
         return false;
     }
@@ -636,8 +645,9 @@ BTF_INLINE bool deleteFile(const String &path) {
 #endif // BTF_CPP17
 }
 
-// @return If the specified path is not exists or failed to delete, return 0, else return count of deleted file.
-BTF_INLINE uintmax_t deleteDirectory(const String &path) {
+// @return If the specified path is not exists or failed to delete, return 0,
+// else return count of deleted file.
+inline uintmax_t deleteDirectory(const String &path) {
     if (!isExistsDirectory(path)) {
         return 0;
     }
@@ -652,8 +662,9 @@ BTF_INLINE uintmax_t deleteDirectory(const String &path) {
 #endif // BTF_CPP17
 }
 
-// @return If the specified path is not exists or failed to delete, return 0, else return count of deleted file.
-BTF_INLINE uintmax_t deletes(const String &path) {
+// @return If the specified path is not exists or failed to delete, return 0,
+// else return count of deleted file.
+inline uintmax_t deletes(const String &path) {
     if (isExistsFile(path)) {
         return deleteFile(path) ? 1 : 0;
     } else if (isExistsDirectory(path)) {
@@ -669,12 +680,13 @@ BTF_INLINE uintmax_t deletes(const String &path) {
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to rename return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to rename return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool rename(const String &src, const String &dst,
-                       WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool rename(const String &src, const String &dst,
+                       WritePolicy wp = Skip, bool dstIsEnd = true) {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
     if (!isExists(src) || src == _dst) {
         return false;
@@ -711,12 +723,13 @@ BTF_INLINE bool rename(const String &src, const String &dst,
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to copy return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool copyFile(const String &src, const String &dst,
-                         WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool copyFile(const String &src, const String &dst,
+                         WritePolicy wp = Skip, bool dstIsEnd = true) {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
     if (!isExistsFile(src) || src == _dst) {
         return false;
@@ -743,10 +756,12 @@ BTF_INLINE bool copyFile(const String &src, const String &dst,
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to copy return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool copyDirectory(const String &src, const String &dst,
+inline bool copyDirectory(const String &src, const String &dst,
                               WritePolicy wp = Skip, bool dstIsEnd = true) {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
     if (!isExistsDirectory(src) || src == dst) {
@@ -770,7 +785,7 @@ BTF_INLINE bool copyDirectory(const String &src, const String &dst,
 }
 
 // @brief The copyFile and copyDirectory in one.
-BTF_INLINE bool copys(const String &src, const String &dst,
+inline bool copys(const String &src, const String &dst,
                       WritePolicy wp = Skip, bool dstIsEnd = true) {
     if (isExistsFile(src)) {
         return copyFile(src, dst, wp, dstIsEnd);
@@ -783,9 +798,9 @@ BTF_INLINE bool copys(const String &src, const String &dst,
 
 // TODO comment
 template<bool isRecursive = true>
-BTF_NODISCARD BTF_INLINE std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nullptr,
-                                                             bool (*filter) (const String &) = nullptr)
-{
+inline
+std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nullptr,
+                                    bool (*filter) (const String &) = nullptr) {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -847,9 +862,9 @@ BTF_NODISCARD BTF_INLINE std::pair<Strings, Strings> getAlls(const String &path,
 
 // TODO comment
 template<bool isRecursive = true>
-BTF_NODISCARD BTF_INLINE Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
-                                             bool (*filter) (const String &) = nullptr)
-{
+inline
+Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
+                    bool (*filter) (const String &) = nullptr) {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -902,9 +917,9 @@ BTF_NODISCARD BTF_INLINE Strings getAllFiles(const String &path, Strings *errorP
 
 // TODO comment.
 template<bool isRecursive = true>
-BTF_NODISCARD BTF_INLINE Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
-                                                  bool (*filter) (const String &) = nullptr)
-{
+inline
+Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
+                         bool (*filter) (const String &) = nullptr) {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -961,12 +976,13 @@ BTF_NODISCARD BTF_INLINE Strings getAllDirectorys(const String &path, Strings *e
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to create symlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool createFileSymlink(const String &src, const String &dst,
-                                  WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool createFileSymlink(const String &src, const String &dst,
+                                  WritePolicy wp = Skip, bool dstIsEnd = true) {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
     if (!isExistsFile(src) || src == _dst) {
         return false;
@@ -1003,12 +1019,13 @@ BTF_INLINE bool createFileSymlink(const String &src, const String &dst,
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to create symlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool createDirectorySymlink(const String &src, const String &dst,
-                                       WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool createDirectorySymlink(const String &src, const String &dst,
+                                       WritePolicy wp = Skip, bool dstIsEnd = true) {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
     if (!isExistsDirectory(src) || src == _dst) {
         return false;
@@ -1040,9 +1057,8 @@ BTF_INLINE bool createDirectorySymlink(const String &src, const String &dst,
 }
 
 // @brief The createFileSymlink and createDirectorySymlink in one.
-BTF_INLINE bool createSymlink(const String &src, const String &dst,
-                              WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool createSymlink(const String &src, const String &dst,
+                              WritePolicy wp = Skip, bool dstIsEnd = true) {
     if (isExistsFile(src)) {
         return createFileSymlink(src, dst, wp, dstIsEnd);
     } else if (isExistsDirectory(src)) {
@@ -1058,12 +1074,13 @@ BTF_INLINE bool createSymlink(const String &src, const String &dst,
 // @param wp The write policy, if the dst exists and wp is Override,
 // the process will override the old file else do nothing.
 // @param dstIsEnd Whether the specified dst is a finally path,
-// if it is false indicates the dst is a directory, the process will add the src's filename to dst's end.
-// @return If the src is not exists or src is equal destination or failed to copy return false, else return true.
+// if it is false indicates the dst is a directory, the process will
+// add the src's filename to dst's end.
+// @return If the src is not exists or src is equal destination or
+// failed to create hardlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-BTF_INLINE bool createHardlink(const String &src, const String &dst,
-                               WritePolicy wp = Skip, bool dstIsEnd = true)
-{
+inline bool createHardlink(const String &src, const String &dst,
+                               WritePolicy wp = Skip, bool dstIsEnd = true) {
     // Get the finally path of to.
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
 
@@ -1100,7 +1117,7 @@ BTF_INLINE bool createHardlink(const String &src, const String &dst,
 #endif // BTF_CPP17
 }
 
-intmax_t getHardlinkCount(const String &path) {
+inline uintmax_t getHardlinkCount(const String &path) {
     if (!isExists(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
@@ -1124,7 +1141,7 @@ namespace Btf
 class File
 {
 public:
-    File() : mData(nullptr) {};
+    File() : mData(nullptr) {}
 
     explicit File(const String &name) : mName(name), mData(nullptr) {}
 
@@ -1210,8 +1227,7 @@ public:
     }
 
     void write(const String &path, WritePolicy policy = Skip,
-               std::ios_base::openmode openmode = std::ios_base::binary) const
-    {
+               std::ios_base::openmode openmode = std::ios_base::binary) const {
         String _path = path.data();
         _path += BTF_PATH_SEPARATOR + mName;
         if (isExistsFile(_path) && policy == Skip) {
@@ -1311,12 +1327,11 @@ private:
 class Dir
 {
 public:
-    Dir() : mSubFiles(nullptr), mSubDirs(nullptr) {};
+    Dir() : mSubFiles(nullptr), mSubDirs(nullptr) {}
 
     explicit Dir(const String &name) : mName(name), mSubFiles(nullptr), mSubDirs(nullptr) {}
 
-    Dir(const Dir &other) : mSubFiles(nullptr), mSubDirs(nullptr)
-    {
+    Dir(const Dir &other) : mSubFiles(nullptr), mSubDirs(nullptr) {
         mName = other.mName;
         if (other.mSubFiles != nullptr) {
             mSubFiles = new Vec<File>(*other.mSubFiles);
@@ -1567,8 +1582,7 @@ public:
     }
 
     void write(const String &path, WritePolicy policy = Skip,
-               std::ios_base::openmode openmode = std::ios_base::binary) const
-    {
+               std::ios_base::openmode openmode = std::ios_base::binary) const {
         String root = String(path) + BTF_PATH_SEPARATOR + mName;
         createDirectory(root);
 
@@ -1649,7 +1663,6 @@ private:
         return 0;
     }
 
-private:
     String mName;
     Vec<File> *mSubFiles;
     Vec<Dir> *mSubDirs;
