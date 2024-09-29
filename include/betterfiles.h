@@ -1167,16 +1167,16 @@ public:
         return File(*this);
     }
 
-    static File fromPath(const String &filepath) {
-        if (!isExistsFile(filepath)) {
-            throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filepath));
+    static File fromPath(const String &filename) {
+        if (!isExistsFile(filename)) {
+            throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filename));
         }
 
-        IFStream ifs(filepath.data(), std::ios_base::binary);
+        IFStream ifs(filename.data(), std::ios_base::binary);
         if (!ifs.is_open()) {
-            throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filepath));
+            throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filename));
         }
-        File file(getPathSuffix(filepath));
+        File file(getPathSuffix(filename));
         file << ifs;
         ifs.close();
         return file;
