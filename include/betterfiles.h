@@ -508,7 +508,7 @@ inline bool isEmptyDirectory(const String &path) {
         return true;
 
     int n = 0;
-    while ((d = readdir(dir)) != nullptr)
+    while ((d = readdir(dir)))
         if (++n > 2)
             break;
 
@@ -546,7 +546,7 @@ inline String getCurrentPath() {
     }
 #else
     char path[PATH_MAX];
-    if (getcwd(path, PATH_MAX) != nullptr) {
+    if (getcwd(path, PATH_MAX)) {
         return path;
     } else {
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
@@ -814,7 +814,7 @@ std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nu
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -834,7 +834,7 @@ std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nu
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -877,7 +877,7 @@ Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -893,7 +893,7 @@ Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -932,7 +932,7 @@ Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -948,7 +948,7 @@ Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
             try {
                 name = var.path().string();
             } catch (Exception &) {
-                if (errorPaths != nullptr) {
+                if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
                 continue;
@@ -1245,7 +1245,7 @@ public:
     File &operator=(const File &other) {
         mName = other.mName;
         clear();
-        if (other.mData != nullptr) {
+        if (other.mData) {
             mData = new String(*other.mData);
         }
         return *this;
@@ -1333,10 +1333,10 @@ public:
 
     Dir(const Dir &other) : mSubFiles(nullptr), mSubDirs(nullptr) {
         mName = other.mName;
-        if (other.mSubFiles != nullptr) {
+        if (other.mSubFiles) {
             mSubFiles = new Vec<File>(*other.mSubFiles);
         }
-        if (other.mSubDirs != nullptr) {
+        if (other.mSubDirs) {
             mSubDirs = new Vec<Dir>(*other.mSubDirs);
         }
     }
@@ -1385,12 +1385,12 @@ public:
 
     size_t size() const {
         size_t size = 0;
-        if (mSubFiles != nullptr) {
+        if (mSubFiles) {
             for (auto &var : *mSubFiles) {
                 size += var.size();
             }
         }
-        if (mSubDirs != nullptr) {
+        if (mSubDirs) {
             for (auto &var : *mSubDirs) {
                 size += var.size();
             }
@@ -1400,10 +1400,10 @@ public:
 
     size_t fileCount(bool isRecursive = true) const {
         size_t cnt = 0;
-        if (mSubFiles != nullptr) {
+        if (mSubFiles) {
             cnt += mSubFiles->size();
         }
-        if (isRecursive && mSubDirs != nullptr) {
+        if (isRecursive && mSubDirs) {
             for (auto &var : *mSubDirs) {
                 cnt += var.fileCount();
             }
@@ -1413,10 +1413,10 @@ public:
 
     size_t dirCount(bool isRecursive = true) const {
         size_t cnt = 0;
-        if (mSubDirs != nullptr) {
+        if (mSubDirs) {
             cnt += mSubDirs->size();
         }
-        if (isRecursive && mSubDirs != nullptr) {
+        if (isRecursive && mSubDirs) {
             for (auto &var : *mSubDirs) {
                 cnt += var.dirCount();
             }
@@ -1437,7 +1437,7 @@ public:
         if (_hasFile(name) != 0) {
             return true;
         }
-        if (isRecursive && mSubDirs != nullptr) {
+        if (isRecursive && mSubDirs) {
             for (auto &var : *mSubDirs) {
                 if (var.hasFile(name, true)) {
                     return true;
@@ -1451,7 +1451,7 @@ public:
         if (_hasDir(name) != 0) {
             return true;
         }
-        if (isRecursive && mSubDirs != nullptr) {
+        if (isRecursive && mSubDirs) {
             for (auto &var : *mSubDirs) {
                 if (var.hasDir(name, true)) {
                     return true;
@@ -1524,14 +1524,14 @@ public:
     }
 
     void clearFiles() {
-        if (mSubFiles != nullptr) {
+        if (mSubFiles) {
             delete mSubFiles;
             mSubFiles = nullptr;
         }
     }
 
     void clearDirs() {
-        if (mSubDirs != nullptr) {
+        if (mSubDirs) {
             delete mSubDirs;
             mSubDirs = nullptr;
         }
@@ -1586,13 +1586,13 @@ public:
         String root = String(path) + BTF_PATH_SEPARATOR + mName;
         createDirectory(root);
 
-        if (mSubFiles != nullptr) {
+        if (mSubFiles) {
             for (auto &var : *mSubFiles) {
                 var.write(root, policy, openmode);
             }
         }
 
-        if (mSubDirs != nullptr) {
+        if (mSubDirs) {
             for (auto &var : *mSubDirs) {
                 var.write(root, policy);
             }
@@ -1603,10 +1603,10 @@ public:
         mName = other.mName;
         clearFiles();
         clearDirs();
-        if (other.mSubFiles != nullptr) {
+        if (other.mSubFiles) {
             mSubFiles = new Vec<File>(*other.mSubFiles);
         }
-        if (other.mSubDirs != nullptr) {
+        if (other.mSubDirs) {
             mSubDirs = new Vec<Dir>(*other.mSubDirs);
         }
         return *this;
@@ -1642,7 +1642,7 @@ public:
 
 private:
     size_t _hasFile(const String &name) const {
-        if (mSubFiles != nullptr) {
+        if (mSubFiles) {
             for (size_t i = 0; i < mSubFiles->size(); ++i) {
                 if ((*mSubFiles)[i].name() == name) {
                     return i + 1;
@@ -1653,7 +1653,7 @@ private:
     }
 
     size_t _hasDir(const String &name) const {
-        if (mSubDirs != nullptr) {
+        if (mSubDirs) {
             for (size_t i = 0; i < mSubDirs->size(); ++i) {
                 if ((*mSubDirs)[i].name() == name) {
                     return i + 1;
