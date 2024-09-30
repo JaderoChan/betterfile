@@ -28,7 +28,7 @@
 #define BETTERFILES_H
 
 #include <cstdint>  // uintmax_t
-#include <cstddef>  // size_t 
+#include <cstddef>  // size_t
 #include <vector>
 #include <string>
 #include <fstream>
@@ -44,11 +44,6 @@
 #if BTF_CPPVERS >= 201703L
 #define BTF_CPP17
 #endif // BTF_CPPVERS >= 201703L
-
-// TODO
-//#if BTF_CPPVERS < 201103L
-//#error BetterFiles library must be used in c++11 or newer.
-//#endif // BTF_CPPVERS < 201103L
 
 #define BTF_PATH_SEPARATOR_WIN          '\\'
 #define BTF_PATH_SEPARATOR_LINUX        '/'
