@@ -147,16 +147,19 @@ inline WString string2wstring(const String& str)
     WString result;
 #ifdef _WIN32
     int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), NULL, 0);
-    if (len == 0) {
+
+    if (len == 0)
         return result;
-    }
+
     wchar_t* buffer = new wchar_t[len + 1];
     int rtn = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), buffer, len);
-    if (rtn == 0) {
+
+    if (rtn == 0)
         return result;
-    }
-    buffer[len]{};
+
+    buffer[len] {};
     result = buffer;
+
     delete[] buffer;
 #else
     // TODO for linux.
@@ -169,16 +172,19 @@ inline String wstring2string(const WString& wstr)
     String result;
 #ifdef _WIN32
     int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
-    if (len == 0) {
+
+    if (len == 0)
         return result;
-    }
+
     char* buffer = new char[len + 1];
     int rtn = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), buffer, len, NULL, NULL);
-    if (rtn == 0) {
+
+    if (rtn == 0)
         return result;
-    }
-    buffer[len]{};
+
+    buffer[len] {};
     result = buffer;
+
     delete[] buffer;
 #else
     // TODO for linux.
@@ -217,9 +223,12 @@ inline String normalizePathC(const String& path, bool removeDQuot = true)
     String _path = fs::path(path).lexically_normal().string();
 #else
     String _path = path;
+
+    // Remove the separator characters at the end.
     while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX) {
         _path.pop_back();
     }
+
     size_t len = 0;
     for (size_t pos = 0; pos < _path.size(); ++pos) {
         if (removeDQuot && _path[pos] == '"') {
@@ -227,23 +236,20 @@ inline String normalizePathC(const String& path, bool removeDQuot = true)
             continue;
         }
     #ifdef _WIN32
-        if (_path[pos] == BTF_PATH_SEPARATOR_LINUX) {
+        if (_path[pos] == BTF_PATH_SEPARATOR_LINUX)
             _path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_WIN);
-        }
     #else
-        if (_path[pos] == BTF_PATH_SEPARATOR_WIN) {
+        if (_path[pos] == BTF_PATH_SEPARATOR_WIN)
             _path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_LINUX);
-        }
     #endif // _WIN32
-        if (_path[pos] == BTF_PATH_SEPARATOR) {
+        if (_path[pos] == BTF_PATH_SEPARATOR)
             ++len;
-        } else {
-            if (len > 1) {
+        else {
+            if (len > 1)
                 _path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
-            }
             len = 0;
         }
-    }
+}
 #endif // BTF_CPP17
     return _path;
 }
@@ -261,9 +267,10 @@ inline String& normalizePath(String& path, bool removeDQuot = true)
 #ifdef BTF_CPP17
     path = fs::path(path).lexically_normal().string();
 #else
-    while (path.back() == BTF_PATH_SEPARATOR_WIN || path.back() == BTF_PATH_SEPARATOR_LINUX) {
+    // Remove the separator characters at the end.
+    while (path.back() == BTF_PATH_SEPARATOR_WIN || path.back() == BTF_PATH_SEPARATOR_LINUX)
         path.pop_back();
-    }
+
     size_t len = 0;
     for (size_t pos = 0; pos < path.size(); ++pos) {
         if (removeDQuot && path[pos] == '"') {
@@ -271,23 +278,20 @@ inline String& normalizePath(String& path, bool removeDQuot = true)
             continue;
         }
     #ifdef _WIN32
-        if (path[pos] == BTF_PATH_SEPARATOR_LINUX) {
+        if (path[pos] == BTF_PATH_SEPARATOR_LINUX)
             path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_WIN);
-        }
     #else
-        if (path[pos] == BTF_PATH_SEPARATOR_WIN) {
+        if (path[pos] == BTF_PATH_SEPARATOR_WIN)
             path.replace(pos, 1, 1, BTF_PATH_SEPARATOR_LINUX);
-        }
     #endif // _WIN32
         if (path[pos] == BTF_PATH_SEPARATOR) {
             ++len;
         } else {
-            if (len > 1) {
+            if (len > 1)
                 path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
-            }
             len = 0;
         }
-    }
+}
 #endif // BTF_CPP17
     return path;
 }
@@ -302,21 +306,23 @@ inline String getPathPrefix(const String& path)
     size_t posw = path.rfind(BTF_PATH_SEPARATOR_WIN);
     size_t posl = path.rfind(BTF_PATH_SEPARATOR_LINUX);
     size_t pos = 0;
-    if (posw == path.npos && posl == path.npos) {
+
+    if (posw == path.npos && posl == path.npos)
         return path;
-    } else {
-        if (posw == path.npos) {
-            pos = posl;
-        } else if (posl == path.npos) {
-            pos = posw;
-        } else {
-            pos = std::max({posw, posl});
-        }
-    }
+
+    if (posw == path.npos)
+        pos = posl;
+    else if (posl == path.npos)
+        pos = posw;
+    else
+        pos = std::max({ posw, posl });
+
     String _path = path.substr(0, pos);
-    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX) {
+
+    // Remove the separator characters at the end.
+    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX)
         _path.pop_back();
-    }
+
     return _path;
 #endif // BTF_CPP17
 }
@@ -331,20 +337,20 @@ inline String getPathSuffix(const String& path)
     size_t posw = path.rfind(BTF_PATH_SEPARATOR_WIN);
     size_t posl = path.rfind(BTF_PATH_SEPARATOR_LINUX);
     size_t pos = 0;
-    if (posw == path.npos && posl == path.npos) {
+
+    if (posw == path.npos && posl == path.npos)
         return path;
-    } else {
-        if (posw == path.npos) {
-            pos = posl;
-        } else if (posl == path.npos) {
-            pos = posw;
-        } else {
-            pos = std::max({posw, posl});
-        }
-    }
-    if (pos == path.size() - 1) {
+
+    if (posw == path.npos)
+        pos = posl;
+    else if (posl == path.npos)
+        pos = posw;
+    else
+        pos = std::max({ posw, posl });
+
+    if (pos == path.size() - 1)
         return "";
-    }
+
     return path.substr(pos + 1);
 #endif // BTF_CPP17
 }
@@ -357,12 +363,13 @@ inline String getFileName(const String& path)
     return fs::path(path).filename().replace_extension().string();
 #else
     String _path = getPathSuffix(path);
+
     size_t pos = _path.rfind('.');
-    if (pos == _path.npos) {
+
+    if (pos == _path.npos)
         return _path;
-    } else {
+    else
         return _path.substr(0, pos);
-    }
 #endif // BTF_CPP17
 }
 
@@ -375,15 +382,16 @@ inline String getFileExtension(const String& path)
     return fs::path(path).filename().extension().string();
 #else
     String _path = getPathSuffix(path);
+
     size_t pos = _path.rfind('.');
-    if (pos == _path.npos) {
+
+    if (pos == _path.npos)
         return _path;
-    } else {
-        if (pos == _path.size() - 1) {
-            return "";
-        }
-        return _path.substr(pos + 1);
-    }
+
+    if (pos == _path.size() - 1)
+        return "";
+
+    return _path.substr(pos + 1);
 #endif // BTF_CPP17
 }
 
@@ -433,6 +441,7 @@ inline bool isExistsFile(const String& path)
     return isExists(path) && fs::is_regular_file(path);
 #else
     struct stat path_stat;
+
     if (stat(path.c_str(), &path_stat) != 0)
         return false;
 #ifdef _WIN32
@@ -450,6 +459,7 @@ inline bool isExistsDirectory(const String& path)
     return isExists(path) && fs::is_directory(path);
 #else
     struct stat path_stat;
+
     if (stat(path.c_str(), &path_stat) != 0)
         return false;
 #ifdef _WIN32
@@ -471,8 +481,10 @@ inline bool isEmptyFile(const String& path)
     return fs::is_empty(path);
 #else
     struct stat path_stat;
+
     if (stat(path.c_str(), &path_stat) != 0)
         return true;
+
     return path_stat.st_size == 0;
 #endif // BTF_CPP17
 }
@@ -481,9 +493,8 @@ inline bool isEmptyFile(const String& path)
 // @note If the directory is not exists, throw exception.
 inline bool isEmptyDirectory(const String& path)
 {
-    if (!isExistsFile(path)) {
+    if (!isExistsFile(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 #ifdef BTF_CPP17
     return fs::is_empty(path);
 #else
@@ -527,9 +538,9 @@ inline bool isEmptyDirectory(const String& path)
 // @note If the file or directory is not exists, throw exception.
 inline bool isEmpty(const String& path)
 {
-    if (!isExists(path)) {
+    if (!isExists(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
+
     return isEmptyFile(path) || isEmptyDirectory(path);
 }
 
@@ -539,23 +550,20 @@ inline String getCurrentPath()
 #ifdef BTF_CPP17
     return fs::current_path().string();
 #else
-#ifdef _WIN32
     char path[MAX_PATH];
-    if (GetCurrentDirectoryA(MAX_PATH, path) != 0) {
+#ifdef _WIN32
+    if (GetCurrentDirectoryA(MAX_PATH, path) != 0)
         return path;
-    } else {
+    else
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetCurrentDirectoryA(), the error code is " +
                                   std::to_string(GetLastError())));
-    }
 #else
-    char path[PATH_MAX];
-    if (getcwd(path, PATH_MAX)) {
+    if (getcwd(path, PATH_MAX))
         return path;
-    } else {
+    else
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in getcwd()."));
-    }
 #endif // _WIN32
 #endif // BTF_CPP17
 }
@@ -563,19 +571,19 @@ inline String getCurrentPath()
 // TODO comment.
 inline uintmax_t getFileSize(const String& path)
 {
-    if (!isExistsFile(path)) {
+    if (!isExistsFile(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 #ifdef BTF_CPP17
     return fs::file_size(path);
 #else
 #ifdef _WIN32
     DWORD size = GetFileSize(getFileHandle(path), NULL);
-    if (size == INVALID_FILE_SIZE) {
+
+    if (size == INVALID_FILE_SIZE)
         throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetFileSize(), the error code is " +
                                   std::to_string(GetLastError())));
-    }
+
     return size;
 #else
     // TODO
@@ -587,13 +595,12 @@ inline uintmax_t getFileSize(const String& path)
 inline uintmax_t getDirectorySize(const String& path)
 {
     uintmax_t result = 0;
-    if (!isExistsDirectory(path)) {
+    if (!isExistsDirectory(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 #ifdef BTF_CPP17
-    for (auto& var : fs::recursive_directory_iterator(path)) {
+    for (auto& var : fs::recursive_directory_iterator(path))
         result += var.file_size();
-    }
+
     return result;
 #else
 #ifdef _WIN32
@@ -607,13 +614,12 @@ inline uintmax_t getDirectorySize(const String& path)
 // TODO comment.
 inline uintmax_t getSize(const String& path)
 {
-    if (isExistsFile(path)) {
+    if (isExistsFile(path))
         return getFileSize(path);
-    } else if (isExistsDirectory(path)) {
+    else if (isExistsDirectory(path))
         return getDirectorySize(path);
-    } else {
+    else
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 }
 
 inline bool createDirectory(const String& path)
@@ -622,11 +628,10 @@ inline bool createDirectory(const String& path)
     return fs::create_directories(path);
 #else
 #ifdef _WIN32
-    if (SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS) {
+    if (SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS)
         return true;
-    } else {
+    else
         return false;
-    }
 #else
     // TODO
 #endif // _WIN32
@@ -636,18 +641,16 @@ inline bool createDirectory(const String& path)
 // @return If the specified path is not exists or failed to delete, return false, else return true.
 inline bool deleteFile(const String& path)
 {
-    if (!isExistsFile(path)) {
+    if (!isExistsFile(path))
         return false;
-    }
 #ifdef BTF_CPP17
     return fs::remove(path);
 #else
 #ifdef _WIN32
-    if (DeleteFileA(path.c_str()) == 0) {
-        return false;
-    } else {
+    if (DeleteFileA(path.c_str()) != 0)
         return true;
-    }
+    else
+        return false;
 #else
     // TODO
 #endif // _WIN32
@@ -658,9 +661,8 @@ inline bool deleteFile(const String& path)
 // else return count of deleted file.
 inline uintmax_t deleteDirectory(const String& path)
 {
-    if (!isExistsDirectory(path)) {
+    if (!isExistsDirectory(path))
         return 0;
-    }
 #ifdef BTF_CPP17
     return fs::remove_all(path);
 #else
@@ -676,13 +678,12 @@ inline uintmax_t deleteDirectory(const String& path)
 // else return count of deleted file.
 inline uintmax_t deletes(const String& path)
 {
-    if (isExistsFile(path)) {
+    if (isExistsFile(path))
         return deleteFile(path) ? 1 : 0;
-    } else if (isExistsDirectory(path)) {
+    else if (isExistsDirectory(path))
         return deleteDirectory(path);
-    } else {
+    else
         return 0;
-    }
 }
 
 // @brief Rename(move) the file or directory to a new location.
@@ -700,25 +701,26 @@ inline bool rename(const String& src, const String& dst,
                    WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
-    if (!isExists(src) || src == _dst) {
+
+    if (!isExists(src) || src == _dst)
         return false;
-    }
+
     if (isExists(_dst)) {
-        if (wp == SKIP) {
+        if (wp == SKIP)
             return true;
-        } else {
+        else
             deletes(_dst);
-        }
     }
 #ifdef BTF_CPP17
     if (dstIsEnd) {
         fs::rename(src, _dst);
     } else {
-        if (!isExistsDirectory(dst)) {
+        if (!isExistsDirectory(dst))
             createDirectory(dst);
-        }
+
         fs::rename(src, _dst);
     }
+
     return true;
 #else
 #ifdef _WIN32
@@ -744,15 +746,16 @@ inline bool copyFile(const String& src, const String& dst,
                      WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
-    if (!isExistsFile(src) || src == _dst) {
+
+    if (!isExistsFile(src) || src == _dst)
         return false;
-    }
-    if (!dstIsEnd && !isExistsDirectory(dst)) {
+
+    if (!dstIsEnd && !isExistsDirectory(dst))
         createDirectory(dst);
-    }
 #ifdef BTF_CPP17
     fs::copy_options cop = wp == SKIP ?
         fs::copy_options::skip_existing : fs::copy_options::overwrite_existing;
+
     return fs::copy_file(src, _dst, cop);
 #else
 #ifdef _WIN32
@@ -778,16 +781,18 @@ inline bool copyDirectory(const String& src, const String& dst,
                           WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
-    if (!isExistsDirectory(src) || src == dst) {
+
+    if (!isExistsDirectory(src) || src == dst)
         return false;
-    }
-    if (!dstIsEnd && !isExistsDirectory(dst)) {
+
+    if (!dstIsEnd && !isExistsDirectory(dst))
         createDirectory(dst);
-    }
 #ifdef BTF_CPP17
     fs::copy_options cop = wp == SKIP ?
         fs::copy_options::skip_existing : fs::copy_options::overwrite_existing;
+
     fs::copy(src, _dst, cop);
+
     return true;
 #else
 #ifdef _WIN32
@@ -802,13 +807,12 @@ inline bool copyDirectory(const String& src, const String& dst,
 inline bool copys(const String& src, const String& dst,
                   WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
-    if (isExistsFile(src)) {
+    if (isExistsFile(src))
         return copyFile(src, dst, wp, dstIsEnd);
-    } else if (isExistsDirectory(src)) {
+    else if (isExistsDirectory(src))
         return copyDirectory(src, dst, wp, dstIsEnd);
-    } else {
+    else
         return false;
-    }
 }
 
 // TODO comment
@@ -817,9 +821,8 @@ inline
 std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nullptr,
                                     bool (*filter) (const String&) = nullptr)
 {
-    if (!isExistsDirectory(path)) {
+    if (!isExistsDirectory(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 
     Strings dirs;
     Strings files;
@@ -827,42 +830,42 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
             } catch (Exception&) {
-                if (errorPaths) {
+                if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-                }
+
                 continue;
             }
 
-            if (var.is_regular_file() && (filter == nullptr || filter(name))) {
+            if (var.is_regular_file() && (filter == nullptr || filter(name)))
                 files.push_back(name);
-            } else if (var.is_directory() && (filter == nullptr || filter(name))) {
+            else if (var.is_directory() && (filter == nullptr || filter(name)))
                 dirs.push_back(name);
-            } else {
+            else
                 continue;
-            }
         }
     } else {
         for (auto& var : fs::directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
             } catch (Exception&) {
-                if (errorPaths) {
+                if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-                }
+
                 continue;
             }
 
-            if (var.is_regular_file() && (filter == nullptr || filter(name))) {
+            if (var.is_regular_file() && (filter == nullptr || filter(name)))
                 files.push_back(name);
-            } else if (var.is_directory() && (filter == nullptr || filter(name))) {
+            else if (var.is_directory() && (filter == nullptr || filter(name)))
                 dirs.push_back(name);
-            } else {
+            else
                 continue;
-            }
         }
     }
 
@@ -882,43 +885,42 @@ inline
 Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
                     bool (*filter) (const String&) = nullptr)
 {
-    if (!isExistsDirectory(path)) {
+    if (!isExistsDirectory(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 
     Strings files;
 #ifdef BTF_CPP17
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
             } catch (Exception&) {
-                if (errorPaths) {
+                if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-                }
+
                 continue;
             }
 
-            if (var.is_regular_file() && (filter == nullptr || filter(name))) {
+            if (var.is_regular_file() && (filter == nullptr || filter(name)))
                 files.push_back(name);
-            }
-        }
-    } else {
+    }
+} else {
         for (auto& var : fs::directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
             } catch (Exception&) {
-                if (errorPaths) {
+                if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-                }
+
                 continue;
             }
 
-            if (var.is_regular_file() && (filter == nullptr || filter(name))) {
+            if (var.is_regular_file() && (filter == nullptr || filter(name)))
                 files.push_back(name);
-            }
         }
     }
 
@@ -938,43 +940,42 @@ inline
 Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
                          bool (*filter) (const String&) = nullptr)
 {
-    if (!isExistsDirectory(path)) {
+    if (!isExistsDirectory(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 
     Strings dirs;
 #ifdef BTF_CPP17
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
-            } catch (Exception&) {
-                if (errorPaths) {
-                    errorPaths->push_back(var.path().u8string());
-                }
-                continue;
-            }
+        } catch (Exception&) {
+            if (errorPaths)
+                errorPaths->push_back(var.path().u8string());
 
-            if (var.is_directory() && (filter == nullptr || filter(name))) {
-                dirs.push_back(name);
-            }
+            continue;
         }
-    } else {
+
+        if (var.is_directory() && (filter == nullptr || filter(name)))
+            dirs.push_back(name);
+    }
+} else {
         for (auto& var : fs::directory_iterator(path)) {
             String name;
+
             try {
                 name = var.path().string();
             } catch (Exception&) {
-                if (errorPaths) {
+                if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-                }
+
                 continue;
             }
 
-            if (var.is_directory() && (filter == nullptr || filter(name))) {
+            if (var.is_directory() && (filter == nullptr || filter(name)))
                 dirs.push_back(name);
-            }
         }
     }
 
@@ -1003,29 +1004,29 @@ inline bool createFileSymlink(const String& src, const String& dst,
                               WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
-    if (!isExistsFile(src) || src == _dst) {
+
+    if (!isExistsFile(src) || src == _dst)
         return false;
-    }
+
     if (isExistsFile(_dst)) {
-        if (wp == SKIP) {
+        if (wp == SKIP)
             return true;
-        } else {
+        else
             deleteFile(_dst);
-        }
     }
-    if (!dstIsEnd && !isExistsDirectory(dst)) {
+
+    if (!dstIsEnd && !isExistsDirectory(dst))
         createDirectory(dst);
-    }
 #ifdef BTF_CPP17
     fs::create_symlink(src, _dst);
+
     return true;
 #else
 #ifdef _WIN32
-    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) == 0) {
-        return false;
-    } else {
+    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) != 0)
         return true;
-    }
+    else
+        return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1047,29 +1048,29 @@ inline bool createDirectorySymlink(const String& src, const String& dst,
                                    WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
-    if (!isExistsDirectory(src) || src == _dst) {
+
+    if (!isExistsDirectory(src) || src == _dst)
         return false;
-    }
+
     if (isExistsDirectory(_dst)) {
-        if (wp == SKIP) {
+        if (wp == SKIP)
             return true;
-        } else {
+        else
             deleteDirectory(_dst);
-        }
     }
-    if (!dstIsEnd && !isExistsDirectory(dst)) {
+
+    if (!dstIsEnd && !isExistsDirectory(dst))
         createDirectory(dst);
-    }
 #ifdef BTF_CPP17
     fs::create_directory_symlink(src, _dst);
+
     return true;
 #else
 #ifdef _WIN32
-    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) == 0) {
-        return false;
-    } else {
+    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) != 0)
         return true;
-    }
+    else
+        return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1080,13 +1081,12 @@ inline bool createDirectorySymlink(const String& src, const String& dst,
 inline bool createSymlink(const String& src, const String& dst,
                           WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
-    if (isExistsFile(src)) {
+    if (isExistsFile(src))
         return createFileSymlink(src, dst, wp, dstIsEnd);
-    } else if (isExistsDirectory(src)) {
+    else if (isExistsDirectory(src))
         return createDirectorySymlink(src, dst, wp, dstIsEnd);
-    } else {
+    else
         return false;
-    }
 }
 
 // @brief Create a hardlink.
@@ -1107,32 +1107,29 @@ inline bool createHardlink(const String& src, const String& dst,
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
 
     // If the src path not exists return false, do nothing.
-    if (!isExistsFile(src) || src == _dst) {
+    if (!isExistsFile(src) || src == _dst)
         return false;
-    }
 
     if (isExistsFile(_dst)) {
-        if (wp == SKIP) {
+        // If the dst path exists and wp is Override delete old file first.
+        if (wp == SKIP)
             return true;
-        } else {
-            // If the dst path exists and wp is Override delete old file first.
+        else
             deleteFile(_dst);
-        }
     }
 
-    if (!dstIsEnd && !isExistsDirectory(dst)) {
+    if (!dstIsEnd && !isExistsDirectory(dst))
         createDirectory(dst);
-    }
 #ifdef BTF_CPP17
     fs::create_hard_link(src, _dst);
+
     return true;
 #else
 #ifdef _WIN32
-    if (CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) == 0) {
-        return false;
-    } else {
+    if (CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) != 0)
         return true;
-    }
+    else
+        return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1141,9 +1138,8 @@ inline bool createHardlink(const String& src, const String& dst,
 
 inline uintmax_t getHardlinkCount(const String& path)
 {
-    if (!isExists(path)) {
+    if (!isExists(path))
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
-    }
 #ifdef BTF_CPP17
     return fs::hard_link_count(path);
 #else
@@ -1171,9 +1167,10 @@ public:
     File(const File& other) : data_(nullptr)
     {
         name_ = other.name_;
-        if (other.data_ == nullptr) {
+
+        if (other.data_ == nullptr)
             return;
-        }
+
         data_ = new String(*other.data_);
     }
 
@@ -1196,19 +1193,21 @@ public:
 
     static File fromPath(const String& filename)
     {
-        if (!isExistsFile(filename)) {
+        if (!isExistsFile(filename))
             throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filename));
-        }
 
         IFStream ifs(filename.data(), std::ios_base::binary);
-        if (!ifs.is_open()) {
+
+        if (!ifs.is_open())
             throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filename));
-        }
+
         File file(getPathSuffix(filename));
         file << ifs;
+
         ifs.close();
+
         return file;
-    }
+}
 
     String name() const
     {
@@ -1217,25 +1216,25 @@ public:
 
     String data() const
     {
-        if (data_ == nullptr) {
-            return String();
-        }
+        if (data_ == nullptr)
+            return "";
+
         return *data_;
     }
 
     size_t size() const
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             return 0;
-        }
+
         return data_->size();
     }
 
     bool empty() const
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             return true;
-        }
+
         return data_->empty();
     }
 
@@ -1246,52 +1245,57 @@ public:
 
     void clear()
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             return;
-        }
+
         delete data_;
         data_ = nullptr;
     }
 
     void write(OStream& os) const
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             return;
-        }
+
         os << *data_;
     }
 
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
-        String _path = path.data();
-        _path += BTF_PATH_SEPARATOR + name_;
-        if (isExistsFile(_path) && wp == SKIP) {
-            return;
-        }
+        String _path = path + BTF_PATH_SEPARATOR + name_;
 
-        OFStream os(_path.data(), openmode);
-        if (!os.is_open()) {
+        if (isExistsFile(_path) && wp == SKIP)
+            return;
+
+        OFStream ofs(_path.data(), openmode);
+
+        if (!ofs.is_open())
             throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, _path));
-        }
-        write(os);
-        os.close();
+
+        write(ofs);
+
+        ofs.close();
     }
 
     File& operator=(const File& other)
     {
         name_ = other.name_;
+
         clear();
-        if (other.data_) {
+
+        if (other.data_)
             data_ = new String(*other.data_);
-        }
+
         return *this;
     }
 
     File& operator=(const String& data)
     {
         clear();
+
         data_ = new String(data);
+
         return *this;
     }
 
@@ -1299,67 +1303,79 @@ public:
     File& operator=(const std::vector<T>& data)
     {
         clear();
-        data_ = new String;
+
         size_t size = data.size();
+
+        data_ = new String;
         data_->reserve(data_->size() + size);
-        for (auto& var : data) {
+
+        for (auto& var : data)
             data_->push_back(var);
-        }
+
         return *this;
     }
 
     File& operator<<(const File& other)
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             data_ = new String;
-        }
+
         data_->append(other.data());
+
         return *this;
     }
 
     File& operator<<(IStream& is)
     {
-        if (data_ == nullptr) {
-            data_ = new String();
-        }
         is.seekg(0, std::ios_base::end);
         size_t size = is.tellg();
         is.seekg(0, std::ios_base::beg);
+
+        if (data_ == nullptr)
+            data_ = new String();
+
         data_->reserve(data_->size() + size);
-        char buffer[BUFFER_SIZE]{};
-        while (is.read(buffer, BUFFER_SIZE)) {
+
+        char buffer[BUFFER_SIZE] {};
+
+        while (is.read(buffer, BUFFER_SIZE))
             data_->append(String(buffer, is.gcount()));
-        }
+
         data_->append(String(buffer, is.gcount()));
+
         return *this;
     }
 
     File& operator<<(const String& data)
     {
-        if (data_ == nullptr) {
+        if (data_ == nullptr)
             data_ = new String();
-        }
+
         data_->append(data);
+
         return *this;
     }
 
     template<typename T>
     File& operator<<(const std::vector<T>& data)
     {
-        if (data_ == nullptr) {
-            data_ = new String;
-        }
         size_t size = data.size();
+
+        if (data_ == nullptr)
+            data_ = new String;
+
         data_->reserve(data_->size() + size);
-        for (auto& var : data) {
+
+        for (auto& var : data)
             data_->push_back(var);
-        }
+
         return *this;
     }
 
     const File& operator>>(OStream& os) const
     {
         write(os);
+
         return *this;
     }
 
@@ -1378,12 +1394,12 @@ public:
     Dir(const Dir& other) : subFiles_(nullptr), subDirs_(nullptr)
     {
         name_ = other.name_;
-        if (other.subFiles_) {
+
+        if (other.subFiles_)
             subFiles_ = new Vec<File>(*other.subFiles_);
-        }
-        if (other.subDirs_) {
+
+        if (other.subDirs_)
             subDirs_ = new Vec<Dir>(*other.subDirs_);
-        }
     }
 
     Dir(Dir&& other) noexcept
@@ -1409,21 +1425,18 @@ public:
 
     static Dir fromPath(const String& dirpath)
     {
-        if (!isExistsDirectory(dirpath)) {
+        if (!isExistsDirectory(dirpath))
             throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, dirpath));
-        }
 
         Dir root(getPathSuffix(dirpath));
 
         auto dirs = getAllDirectorys<false>(dirpath);
-        for (auto& var : dirs) {
+        for (auto& var : dirs)
             root << Dir::fromPath(var);
-        }
 
         auto files = getAllFiles<false>(dirpath);
-        for (auto& var : files) {
+        for (auto& var : files)
             root << File::fromPath(var);
-        }
 
         return root;
     }
@@ -1436,44 +1449,47 @@ public:
     size_t size() const
     {
         size_t size = 0;
+
         if (subFiles_) {
-            for (auto& var : *subFiles_) {
+            for (auto& var : *subFiles_)
                 size += var.size();
-            }
         }
+
         if (subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (auto& var : *subDirs_)
                 size += var.size();
-            }
         }
+
         return size;
     }
 
     size_t fileCount(bool isRecursive = true) const
     {
         size_t cnt = 0;
-        if (subFiles_) {
+
+        if (subFiles_)
             cnt += subFiles_->size();
-        }
+
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (auto& var : *subDirs_)
                 cnt += var.fileCount();
-            }
         }
+
         return cnt;
     }
 
     size_t dirCount(bool isRecursive = true) const
     {
         size_t cnt = 0;
-        if (subDirs_) {
+
+        if (subDirs_)
             cnt += subDirs_->size();
-        }
+
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (auto& var : *subDirs_)
                 cnt += var.dirCount();
-            }
         }
+
         return cnt;
     }
 
@@ -1490,31 +1506,31 @@ public:
 
     bool hasFile(const String& name, bool isRecursive = false) const
     {
-        if (hasFile_(name) != 0) {
+        if (hasFile_(name) != 0)
             return true;
-        }
+
         if (isRecursive && subDirs_) {
             for (auto& var : *subDirs_) {
-                if (var.hasFile(name, true)) {
+                if (var.hasFile(name, true))
                     return true;
-                }
             }
         }
+
         return false;
     }
 
     bool hasDir(const String& name, bool isRecursive = false) const
     {
-        if (hasDir_(name) != 0) {
+        if (hasDir_(name) != 0)
             return true;
-        }
+
         if (isRecursive && subDirs_) {
             for (auto& var : *subDirs_) {
-                if (var.hasDir(name, true)) {
+                if (var.hasDir(name, true))
                     return true;
-                }
             }
         }
+
         return false;
     }
 
@@ -1546,38 +1562,46 @@ public:
     File& file(const String& name)
     {
         size_t pos = hasFile_(name);
+
         if (pos == 0) {
             addFile(name);
+
             return subFiles_->back();
         }
+
         return (*subFiles_)[pos - 1];
     }
 
     Dir& dir(const String& name)
     {
         size_t pos = hasDir_(name);
+
         if (pos == 0) {
             addDir(name);
+
             return subDirs_->back();
         }
+
         return (*subDirs_)[pos - 1];
     }
 
     void removeFile(const String& name)
     {
         size_t pos = hasFile_(name);
-        if (pos == 0) {
+
+        if (pos == 0)
             return;
-        }
+
         subFiles_->erase(subFiles_->begin() + pos - 1);
     }
 
     void removeDir(const String& name)
     {
         size_t pos = hasDir_(name);
-        if (pos == 0) {
+
+        if (pos == 0)
             return;
-        }
+
         subDirs_->erase(subDirs_->begin() + pos - 1);
     }
 
@@ -1609,31 +1633,35 @@ public:
 
     void add(File& file, WritePolicy wp = SKIP)
     {
-        if (subFiles_ == nullptr) {
+        if (subFiles_ == nullptr)
             subFiles_ = new Vec<File>();
-        }
+
         size_t pos = hasFile_(file.name());
+
         if (pos != 0) {
-            if (wp == OVERRIDE) {
+            if (wp == OVERRIDE)
                 (*subFiles_)[pos] = std::move(file);
-            }
+
             return;
         }
+
         subFiles_->emplace_back(std::move(file));
     }
 
     void add(Dir& dir, WritePolicy wp = SKIP)
     {
-        if (subDirs_ == nullptr) {
+        if (subDirs_ == nullptr)
             subDirs_ = new Vec<Dir>();
-        }
+
         size_t pos = hasDir_(dir.name());
+
         if (pos != 0) {
-            if (wp == OVERRIDE) {
+            if (wp == OVERRIDE)
                 (*subDirs_)[pos] = std::move(dir);
-            }
+
             return;
         }
+
         subDirs_->emplace_back(std::move(dir));
     }
 
@@ -1661,32 +1689,33 @@ public:
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         String root = String(path) + BTF_PATH_SEPARATOR + name_;
+
         createDirectory(root);
 
         if (subFiles_) {
-            for (auto& var : *subFiles_) {
+            for (auto& var : *subFiles_)
                 var.write(root, wp, openmode);
-            }
         }
 
         if (subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (auto& var : *subDirs_)
                 var.write(root, wp);
-            }
         }
     }
 
     Dir& operator=(const Dir& other)
     {
         name_ = other.name_;
+
         clearFiles();
         clearDirs();
-        if (other.subFiles_) {
+
+        if (other.subFiles_)
             subFiles_ = new Vec<File>(*other.subFiles_);
-        }
-        if (other.subDirs_) {
+
+        if (other.subDirs_)
             subDirs_ = new Vec<Dir>(*other.subDirs_);
-        }
+
         return *this;
     }
 
@@ -1703,24 +1732,28 @@ public:
     Dir& operator<<(File& file)
     {
         add(file);
+
         return *this;
     }
 
     Dir& operator<<(Dir& dir)
     {
         add(dir);
+
         return *this;
     }
 
     Dir& operator<<(File&& file)
     {
         add(file);
+
         return *this;
     }
 
     Dir& operator<<(Dir&& dir)
     {
         add(dir);
+
         return *this;
     }
 
@@ -1729,11 +1762,11 @@ private:
     {
         if (subFiles_) {
             for (size_t i = 0; i < subFiles_->size(); ++i) {
-                if ((*subFiles_)[i].name() == name) {
+                if ((*subFiles_)[i].name() == name)
                     return i + 1;
-                }
             }
         }
+
         return 0;
     }
 
@@ -1741,11 +1774,11 @@ private:
     {
         if (subDirs_) {
             for (size_t i = 0; i < subDirs_->size(); ++i) {
-                if ((*subDirs_)[i].name() == name) {
+                if ((*subDirs_)[i].name() == name)
                     return i + 1;
-                }
             }
         }
+
         return 0;
     }
 
