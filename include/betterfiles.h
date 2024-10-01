@@ -142,7 +142,7 @@ namespace btf
 
 // BetterFiles's aux functions.
 
-inline WString string2wstring(const String &str)
+inline WString string2wstring(const String& str)
 {
     WString result;
 #ifdef _WIN32
@@ -150,7 +150,7 @@ inline WString string2wstring(const String &str)
     if (len == 0) {
         return result;
     }
-    wchar_t *buffer = new wchar_t[len + 1];
+    wchar_t* buffer = new wchar_t[len + 1];
     int rtn = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), buffer, len);
     if (rtn == 0) {
         return result;
@@ -164,7 +164,7 @@ inline WString string2wstring(const String &str)
     return result;
 }
 
-inline String wstring2string(const WString &wstr)
+inline String wstring2string(const WString& wstr)
 {
     String result;
 #ifdef _WIN32
@@ -172,7 +172,7 @@ inline String wstring2string(const WString &wstr)
     if (len == 0) {
         return result;
     }
-    char *buffer = new char[len + 1];
+    char* buffer = new char[len + 1];
     int rtn = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), buffer, len, NULL, NULL);
     if (rtn == 0) {
         return result;
@@ -187,7 +187,7 @@ inline String wstring2string(const WString &wstr)
 }
 
 #ifdef _WIN32
-HANDLE getFileHandle(const String &path)
+HANDLE getFileHandle(const String& path)
 {
     WIN32_FIND_DATAA fd;
     return FindFirstFileA(path.c_str(), &fd);
@@ -211,7 +211,7 @@ namespace btf
 // @note Do not change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
 // @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
-inline String normalizePathC(const String &path, bool removeDQuot = true)
+inline String normalizePathC(const String& path, bool removeDQuot = true)
 {
 #ifdef BTF_CPP17
     String _path = fs::path(path).lexically_normal().string();
@@ -256,7 +256,7 @@ inline String normalizePathC(const String &path, bool removeDQuot = true)
 // @note Do change the paramter.
 // @example "C://path_to/\/file\" => "C:\path_to\file"
 // @example ""C:/path_to/file name . ext"" => "C:\path_to\file name . ext" (removeDQuot == true)
-inline String &normalizePath(String &path, bool removeDQuot = true)
+inline String& normalizePath(String& path, bool removeDQuot = true)
 {
 #ifdef BTF_CPP17
     path = fs::path(path).lexically_normal().string();
@@ -294,7 +294,7 @@ inline String &normalizePath(String &path, bool removeDQuot = true)
 
 // @brief Get the normal path which discard the filename and extension.
 // @example "C:/path_to/file.ext" => "C:\path_to"
-inline String getPathPrefix(const String &path)
+inline String getPathPrefix(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).parent_path().string();
@@ -323,7 +323,7 @@ inline String getPathPrefix(const String &path)
 
 // @brief Get the normal path which just reserve the filename and extension.
 // @example "C:/path_to/file.ext" => "file.ext"
-inline String getPathSuffix(const String &path)
+inline String getPathSuffix(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).filename().string();
@@ -351,7 +351,7 @@ inline String getPathSuffix(const String &path)
 
 // @brief Get the file's name, and not include extension.
 // @example "C:/path_to/file.ext" => "file"
-inline String getFileName(const String &path)
+inline String getFileName(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).filename().replace_extension().string();
@@ -369,7 +369,7 @@ inline String getFileName(const String &path)
 // @brief Get the file's extension.
 // @return Include the symbol dit '.'.
 // @example "C:/path_to/file.ext" => ".ext"
-inline String getFileExtension(const String &path)
+inline String getFileExtension(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).filename().extension().string();
@@ -389,7 +389,7 @@ inline String getFileExtension(const String &path)
 
 // @brief Get the specified path's previously directory path's name.
 // @example "C:/path_to/file.ext" => "path_to"
-inline String getParentName(const String &path)
+inline String getParentName(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).parent_path().filename().string();
@@ -400,7 +400,7 @@ inline String getParentName(const String &path)
 
 // @brief Concatenate the path with prefered separator.
 // @example "C:/path_to" "file.ext" => "C:/path_to\file.ext"
-inline String pathcat(const String &path1, const String &path2)
+inline String pathcat(const String& path1, const String& path2)
 {
     return path1 + BTF_PATH_SEPARATOR + path2;
 }
@@ -411,13 +411,13 @@ inline String pathcat(const String &path1, const String &path2)
 // @return Return the full path after change the filename.
 // @example path = "C:/path_to/oldfile.dat" newname = "newfile" => "C:/path_to/newfile.dat"
 // @attention Just base string, not check the actually path.
-inline String changeFileName(const String &path, const String &newname)
+inline String changeFileName(const String& path, const String& newname)
 {
     return pathcat(getPathPrefix(path), newname + getFileExtension(path));
 }
 
 // @brief Whether file or directory exists.
-inline bool isExists(const String &path)
+inline bool isExists(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::exists(path);
@@ -427,7 +427,7 @@ inline bool isExists(const String &path)
 }
 
 // @brief Whether the file exists.
-inline bool isExistsFile(const String &path)
+inline bool isExistsFile(const String& path)
 {
 #ifdef BTF_CPP17
     return isExists(path) && fs::is_regular_file(path);
@@ -444,7 +444,7 @@ inline bool isExistsFile(const String &path)
 }
 
 // @brief Whether the directory exists.
-inline bool isExistsDirectory(const String &path)
+inline bool isExistsDirectory(const String& path)
 {
 #ifdef BTF_CPP17
     return isExists(path) && fs::is_directory(path);
@@ -462,7 +462,7 @@ inline bool isExistsDirectory(const String &path)
 
 // @brief Whether file is empty. If it is empty indicates it's size is 0.
 // @note If the file is not exists, throw exception.
-inline bool isEmptyFile(const String &path)
+inline bool isEmptyFile(const String& path)
 {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -479,7 +479,7 @@ inline bool isEmptyFile(const String &path)
 
 // @brief Whether directory is empty. If it is empty indicates it's not contains anything.
 // @note If the directory is not exists, throw exception.
-inline bool isEmptyDirectory(const String &path)
+inline bool isEmptyDirectory(const String& path)
 {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -503,8 +503,8 @@ inline bool isEmptyDirectory(const String &path)
     // '.' and '..' are always present.
     return n <= 2;
 #else
-    struct dirent *d;
-    DIR *dir = opendir(path.c_str());
+    struct dirent* d;
+    DIR* dir = opendir(path.c_str());
 
     if (dir == nullptr)
         return true;
@@ -525,7 +525,7 @@ inline bool isEmptyDirectory(const String &path)
 // Empty file indicates it's size is 0.
 // Empty directory indicates it's not contains anything.
 // @note If the file or directory is not exists, throw exception.
-inline bool isEmpty(const String &path)
+inline bool isEmpty(const String& path)
 {
     if (!isExists(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -561,7 +561,7 @@ inline String getCurrentPath()
 }
 
 // TODO comment.
-inline uintmax_t getFileSize(const String &path)
+inline uintmax_t getFileSize(const String& path)
 {
     if (!isExistsFile(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -584,14 +584,14 @@ inline uintmax_t getFileSize(const String &path)
 }
 
 // TODO comment.
-inline uintmax_t getDirectorySize(const String &path)
+inline uintmax_t getDirectorySize(const String& path)
 {
     uintmax_t result = 0;
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
     }
 #ifdef BTF_CPP17
-    for (auto &var : fs::recursive_directory_iterator(path)) {
+    for (auto& var : fs::recursive_directory_iterator(path)) {
         result += var.file_size();
     }
     return result;
@@ -605,7 +605,7 @@ inline uintmax_t getDirectorySize(const String &path)
 }
 
 // TODO comment.
-inline uintmax_t getSize(const String &path)
+inline uintmax_t getSize(const String& path)
 {
     if (isExistsFile(path)) {
         return getFileSize(path);
@@ -616,7 +616,7 @@ inline uintmax_t getSize(const String &path)
     }
 }
 
-inline bool createDirectory(const String &path)
+inline bool createDirectory(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::create_directories(path);
@@ -634,7 +634,7 @@ inline bool createDirectory(const String &path)
 }
 
 // @return If the specified path is not exists or failed to delete, return false, else return true.
-inline bool deleteFile(const String &path)
+inline bool deleteFile(const String& path)
 {
     if (!isExistsFile(path)) {
         return false;
@@ -656,7 +656,7 @@ inline bool deleteFile(const String &path)
 
 // @return If the specified path is not exists or failed to delete, return 0,
 // else return count of deleted file.
-inline uintmax_t deleteDirectory(const String &path)
+inline uintmax_t deleteDirectory(const String& path)
 {
     if (!isExistsDirectory(path)) {
         return 0;
@@ -674,7 +674,7 @@ inline uintmax_t deleteDirectory(const String &path)
 
 // @return If the specified path is not exists or failed to delete, return 0,
 // else return count of deleted file.
-inline uintmax_t deletes(const String &path)
+inline uintmax_t deletes(const String& path)
 {
     if (isExistsFile(path)) {
         return deleteFile(path) ? 1 : 0;
@@ -696,7 +696,7 @@ inline uintmax_t deletes(const String &path)
 // @return If the src is not exists or src is equal destination or
 // failed to rename return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool rename(const String &src, const String &dst,
+inline bool rename(const String& src, const String& dst,
                    WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
@@ -740,7 +740,7 @@ inline bool rename(const String &src, const String &dst,
 // @return If the src is not exists or src is equal destination or
 // failed to copy return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool copyFile(const String &src, const String &dst,
+inline bool copyFile(const String& src, const String& dst,
                      WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
@@ -774,7 +774,7 @@ inline bool copyFile(const String &src, const String &dst,
 // @return If the src is not exists or src is equal destination or
 // failed to copy return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool copyDirectory(const String &src, const String &dst,
+inline bool copyDirectory(const String& src, const String& dst,
                           WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
@@ -799,7 +799,7 @@ inline bool copyDirectory(const String &src, const String &dst,
 }
 
 // @brief The copyFile and copyDirectory in one.
-inline bool copys(const String &src, const String &dst,
+inline bool copys(const String& src, const String& dst,
                   WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     if (isExistsFile(src)) {
@@ -814,8 +814,8 @@ inline bool copys(const String &src, const String &dst,
 // TODO comment
 template<bool isRecursive = true>
 inline
-std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nullptr,
-                                    bool (*filter) (const String &) = nullptr)
+std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nullptr,
+                                    bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -825,11 +825,11 @@ std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nu
     Strings files;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto &var : fs::recursive_directory_iterator(path)) {
+        for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -845,11 +845,11 @@ std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nu
             }
         }
     } else {
-        for (auto &var : fs::directory_iterator(path)) {
+        for (auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -879,8 +879,8 @@ std::pair<Strings, Strings> getAlls(const String &path, Strings *errorPaths = nu
 // TODO comment
 template<bool isRecursive = true>
 inline
-Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
-                    bool (*filter) (const String &) = nullptr)
+Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
+                    bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -889,11 +889,11 @@ Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
     Strings files;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto &var : fs::recursive_directory_iterator(path)) {
+        for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -905,11 +905,11 @@ Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
             }
         }
     } else {
-        for (auto &var : fs::directory_iterator(path)) {
+        for (auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -935,8 +935,8 @@ Strings getAllFiles(const String &path, Strings *errorPaths = nullptr,
 // TODO comment.
 template<bool isRecursive = true>
 inline
-Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
-                         bool (*filter) (const String &) = nullptr)
+Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
+                         bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -945,11 +945,11 @@ Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
     Strings dirs;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto &var : fs::recursive_directory_iterator(path)) {
+        for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -961,11 +961,11 @@ Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
             }
         }
     } else {
-        for (auto &var : fs::directory_iterator(path)) {
+        for (auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception &) {
+            } catch (Exception&) {
                 if (errorPaths) {
                     errorPaths->push_back(var.path().u8string());
                 }
@@ -999,7 +999,7 @@ Strings getAllDirectorys(const String &path, Strings *errorPaths = nullptr,
 // @return If the src is not exists or src is equal destination or
 // failed to create symlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool createFileSymlink(const String &src, const String &dst,
+inline bool createFileSymlink(const String& src, const String& dst,
                               WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
@@ -1043,7 +1043,7 @@ inline bool createFileSymlink(const String &src, const String &dst,
 // @return If the src is not exists or src is equal destination or
 // failed to create symlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool createDirectorySymlink(const String &src, const String &dst,
+inline bool createDirectorySymlink(const String& src, const String& dst,
                                    WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
@@ -1077,7 +1077,7 @@ inline bool createDirectorySymlink(const String &src, const String &dst,
 }
 
 // @brief The createFileSymlink and createDirectorySymlink in one.
-inline bool createSymlink(const String &src, const String &dst,
+inline bool createSymlink(const String& src, const String& dst,
                           WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
     if (isExistsFile(src)) {
@@ -1100,7 +1100,7 @@ inline bool createSymlink(const String &src, const String &dst,
 // @return If the src is not exists or src is equal destination or
 // failed to create hardlink return false, else return true.
 // @note If the dst is not exists and dstIsEnd is false, create the destination directory first.
-inline bool createHardlink(const String &src, const String &dst,
+inline bool createHardlink(const String& src, const String& dst,
                            WritePolicy wp = SKIP, bool dstIsEnd = true)
 {
 // Get the finally path of to.
@@ -1139,7 +1139,7 @@ inline bool createHardlink(const String &src, const String &dst,
 #endif // BTF_CPP17
 }
 
-inline uintmax_t getHardlinkCount(const String &path)
+inline uintmax_t getHardlinkCount(const String& path)
 {
     if (!isExists(path)) {
         throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
@@ -1166,9 +1166,9 @@ class File
 public:
     File() : data_(nullptr) {}
 
-    explicit File(const String &name) : name_(name), data_(nullptr) {}
+    explicit File(const String& name) : name_(name), data_(nullptr) {}
 
-    File(const File &other) : data_(nullptr)
+    File(const File& other) : data_(nullptr)
     {
         name_ = other.name_;
         if (other.data_ == nullptr) {
@@ -1177,7 +1177,7 @@ public:
         data_ = new String(*other.data_);
     }
 
-    File(File &&other) noexcept
+    File(File&& other) noexcept
     {
         name_ = other.name_;
         data_ = other.data_;
@@ -1194,7 +1194,7 @@ public:
         return File(*this);
     }
 
-    static File fromPath(const String &filename)
+    static File fromPath(const String& filename)
     {
         if (!isExistsFile(filename)) {
             throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filename));
@@ -1239,7 +1239,7 @@ public:
         return data_->empty();
     }
 
-    void setName(const String &name)
+    void setName(const String& name)
     {
         name_ = name;
     }
@@ -1253,7 +1253,7 @@ public:
         data_ = nullptr;
     }
 
-    void write(OStream &os) const
+    void write(OStream& os) const
     {
         if (data_ == nullptr) {
             return;
@@ -1261,7 +1261,7 @@ public:
         os << *data_;
     }
 
-    void write(const String &path, WritePolicy wp = SKIP,
+    void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         String _path = path.data();
@@ -1278,7 +1278,7 @@ public:
         os.close();
     }
 
-    File &operator=(const File &other)
+    File& operator=(const File& other)
     {
         name_ = other.name_;
         clear();
@@ -1288,7 +1288,7 @@ public:
         return *this;
     }
 
-    File &operator=(const String &data)
+    File& operator=(const String& data)
     {
         clear();
         data_ = new String(data);
@@ -1296,19 +1296,19 @@ public:
     }
 
     template<typename T>
-    File &operator=(const std::vector<T> &data)
+    File& operator=(const std::vector<T>& data)
     {
         clear();
         data_ = new String;
         size_t size = data.size();
         data_->reserve(data_->size() + size);
-        for (auto &var : data) {
+        for (auto& var : data) {
             data_->push_back(var);
         }
         return *this;
     }
 
-    File &operator<<(const File &other)
+    File& operator<<(const File& other)
     {
         if (data_ == nullptr) {
             data_ = new String;
@@ -1317,7 +1317,7 @@ public:
         return *this;
     }
 
-    File &operator<<(IStream &is)
+    File& operator<<(IStream& is)
     {
         if (data_ == nullptr) {
             data_ = new String();
@@ -1334,7 +1334,7 @@ public:
         return *this;
     }
 
-    File &operator<<(const String &data)
+    File& operator<<(const String& data)
     {
         if (data_ == nullptr) {
             data_ = new String();
@@ -1344,20 +1344,20 @@ public:
     }
 
     template<typename T>
-    File &operator<<(const std::vector<T> &data)
+    File& operator<<(const std::vector<T>& data)
     {
         if (data_ == nullptr) {
             data_ = new String;
         }
         size_t size = data.size();
         data_->reserve(data_->size() + size);
-        for (auto &var : data) {
+        for (auto& var : data) {
             data_->push_back(var);
         }
         return *this;
     }
 
-    const File &operator>>(OStream &os) const
+    const File& operator>>(OStream& os) const
     {
         write(os);
         return *this;
@@ -1365,7 +1365,7 @@ public:
 
 private:
     String name_;
-    String *data_;
+    String* data_;
 };
 
 class Dir
@@ -1373,9 +1373,9 @@ class Dir
 public:
     Dir() : subFiles_(nullptr), subDirs_(nullptr) {}
 
-    explicit Dir(const String &name) : name_(name), subFiles_(nullptr), subDirs_(nullptr) {}
+    explicit Dir(const String& name) : name_(name), subFiles_(nullptr), subDirs_(nullptr) {}
 
-    Dir(const Dir &other) : subFiles_(nullptr), subDirs_(nullptr)
+    Dir(const Dir& other) : subFiles_(nullptr), subDirs_(nullptr)
     {
         name_ = other.name_;
         if (other.subFiles_) {
@@ -1386,7 +1386,7 @@ public:
         }
     }
 
-    Dir(Dir &&other) noexcept
+    Dir(Dir&& other) noexcept
     {
         name_ = other.name_;
         other.name_.clear();
@@ -1407,7 +1407,7 @@ public:
         return Dir(*this);
     }
 
-    static Dir fromPath(const String &dirpath)
+    static Dir fromPath(const String& dirpath)
     {
         if (!isExistsDirectory(dirpath)) {
             throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, dirpath));
@@ -1416,12 +1416,12 @@ public:
         Dir root(getPathSuffix(dirpath));
 
         auto dirs = getAllDirectorys<false>(dirpath);
-        for (auto &var : dirs) {
+        for (auto& var : dirs) {
             root << Dir::fromPath(var);
         }
 
         auto files = getAllFiles<false>(dirpath);
-        for (auto &var : files) {
+        for (auto& var : files) {
             root << File::fromPath(var);
         }
 
@@ -1437,12 +1437,12 @@ public:
     {
         size_t size = 0;
         if (subFiles_) {
-            for (auto &var : *subFiles_) {
+            for (auto& var : *subFiles_) {
                 size += var.size();
             }
         }
         if (subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 size += var.size();
             }
         }
@@ -1456,7 +1456,7 @@ public:
             cnt += subFiles_->size();
         }
         if (isRecursive && subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 cnt += var.fileCount();
             }
         }
@@ -1470,7 +1470,7 @@ public:
             cnt += subDirs_->size();
         }
         if (isRecursive && subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 cnt += var.dirCount();
             }
         }
@@ -1488,13 +1488,13 @@ public:
             (subDirs_ == nullptr || subDirs_->empty());
     }
 
-    bool hasFile(const String &name, bool isRecursive = false) const
+    bool hasFile(const String& name, bool isRecursive = false) const
     {
         if (hasFile_(name) != 0) {
             return true;
         }
         if (isRecursive && subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 if (var.hasFile(name, true)) {
                     return true;
                 }
@@ -1503,13 +1503,13 @@ public:
         return false;
     }
 
-    bool hasDir(const String &name, bool isRecursive = false) const
+    bool hasDir(const String& name, bool isRecursive = false) const
     {
         if (hasDir_(name) != 0) {
             return true;
         }
         if (isRecursive && subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 if (var.hasDir(name, true)) {
                     return true;
                 }
@@ -1518,32 +1518,32 @@ public:
         return false;
     }
 
-    void setName(const String &name)
+    void setName(const String& name)
     {
         name_ = name;
     }
 
-    const Vec<File> &files() const
+    const Vec<File>& files() const
     {
         return *subFiles_;
     }
 
-    const Vec<Dir> &dirs() const
+    const Vec<Dir>& dirs() const
     {
         return *subDirs_;
     }
 
-    Vec<File> &files()
+    Vec<File>& files()
     {
         return *subFiles_;
     }
 
-    Vec<Dir> &dirs()
+    Vec<Dir>& dirs()
     {
         return *subDirs_;
     }
 
-    File &file(const String &name)
+    File& file(const String& name)
     {
         size_t pos = hasFile_(name);
         if (pos == 0) {
@@ -1553,7 +1553,7 @@ public:
         return (*subFiles_)[pos - 1];
     }
 
-    Dir &dir(const String &name)
+    Dir& dir(const String& name)
     {
         size_t pos = hasDir_(name);
         if (pos == 0) {
@@ -1563,7 +1563,7 @@ public:
         return (*subDirs_)[pos - 1];
     }
 
-    void removeFile(const String &name)
+    void removeFile(const String& name)
     {
         size_t pos = hasFile_(name);
         if (pos == 0) {
@@ -1572,7 +1572,7 @@ public:
         subFiles_->erase(subFiles_->begin() + pos - 1);
     }
 
-    void removeDir(const String &name)
+    void removeDir(const String& name)
     {
         size_t pos = hasDir_(name);
         if (pos == 0) {
@@ -1581,12 +1581,12 @@ public:
         subDirs_->erase(subDirs_->begin() + pos - 1);
     }
 
-    void remove(const File &file)
+    void remove(const File& file)
     {
         removeFile(file.name());
     }
 
-    void remove(const Dir &dir)
+    void remove(const Dir& dir)
     {
         removeDir(dir.name());
     }
@@ -1607,7 +1607,7 @@ public:
         }
     }
 
-    void add(File &file, WritePolicy wp = SKIP)
+    void add(File& file, WritePolicy wp = SKIP)
     {
         if (subFiles_ == nullptr) {
             subFiles_ = new Vec<File>();
@@ -1622,7 +1622,7 @@ public:
         subFiles_->emplace_back(std::move(file));
     }
 
-    void add(Dir &dir, WritePolicy wp = SKIP)
+    void add(Dir& dir, WritePolicy wp = SKIP)
     {
         if (subDirs_ == nullptr) {
             subDirs_ = new Vec<Dir>();
@@ -1637,46 +1637,46 @@ public:
         subDirs_->emplace_back(std::move(dir));
     }
 
-    void add(File &&file)
+    void add(File&& file)
     {
         add(file);
     }
 
-    void add(Dir &&dir)
+    void add(Dir&& dir)
     {
         add(dir);
     }
 
-    void addFile(const String &name)
+    void addFile(const String& name)
     {
         add(File(name));
     }
 
-    void addDir(const String &name)
+    void addDir(const String& name)
     {
         add(Dir(name));
     }
 
-    void write(const String &path, WritePolicy wp = SKIP,
+    void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         String root = String(path) + BTF_PATH_SEPARATOR + name_;
         createDirectory(root);
 
         if (subFiles_) {
-            for (auto &var : *subFiles_) {
+            for (auto& var : *subFiles_) {
                 var.write(root, wp, openmode);
             }
         }
 
         if (subDirs_) {
-            for (auto &var : *subDirs_) {
+            for (auto& var : *subDirs_) {
                 var.write(root, wp);
             }
         }
     }
 
-    Dir &operator=(const Dir &other)
+    Dir& operator=(const Dir& other)
     {
         name_ = other.name_;
         clearFiles();
@@ -1690,42 +1690,42 @@ public:
         return *this;
     }
 
-    Dir &operator[](const String &name)
+    Dir& operator[](const String& name)
     {
         return dir(name);
     }
 
-    File &operator()(const String &name)
+    File& operator()(const String& name)
     {
         return file(name);
     }
 
-    Dir &operator<<(File &file)
+    Dir& operator<<(File& file)
     {
         add(file);
         return *this;
     }
 
-    Dir &operator<<(Dir &dir)
+    Dir& operator<<(Dir& dir)
     {
         add(dir);
         return *this;
     }
 
-    Dir &operator<<(File &&file)
+    Dir& operator<<(File&& file)
     {
         add(file);
         return *this;
     }
 
-    Dir &operator<<(Dir &&dir)
+    Dir& operator<<(Dir&& dir)
     {
         add(dir);
         return *this;
     }
 
 private:
-    size_t hasFile_(const String &name) const
+    size_t hasFile_(const String& name) const
     {
         if (subFiles_) {
             for (size_t i = 0; i < subFiles_->size(); ++i) {
@@ -1737,7 +1737,7 @@ private:
         return 0;
     }
 
-    size_t hasDir_(const String &name) const
+    size_t hasDir_(const String& name) const
     {
         if (subDirs_) {
             for (size_t i = 0; i < subDirs_->size(); ++i) {
@@ -1750,8 +1750,8 @@ private:
     }
 
     String name_;
-    Vec<File> *subFiles_;
-    Vec<Dir> *subDirs_;
+    Vec<File>* subFiles_;
+    Vec<Dir>* subDirs_;
 };
 
 }
