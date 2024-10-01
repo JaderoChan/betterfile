@@ -225,9 +225,8 @@ inline String normalizePathC(const String& path, bool removeDQuot = true)
     String _path = path;
 
     // Remove the separator characters at the end.
-    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX) {
+    while (_path.back() == BTF_PATH_SEPARATOR_WIN || _path.back() == BTF_PATH_SEPARATOR_LINUX)
         _path.pop_back();
-    }
 
     size_t len = 0;
     for (size_t pos = 0; pos < _path.size(); ++pos) {
@@ -249,7 +248,7 @@ inline String normalizePathC(const String& path, bool removeDQuot = true)
                 _path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
             len = 0;
         }
-}
+    }
 #endif // BTF_CPP17
     return _path;
 }
@@ -291,7 +290,7 @@ inline String& normalizePath(String& path, bool removeDQuot = true)
                 path.replace(pos - len, len, 1, BTF_PATH_SEPARATOR);
             len = 0;
         }
-}
+    }
 #endif // BTF_CPP17
     return path;
 }
@@ -511,6 +510,7 @@ inline bool isEmptyDirectory(const String& path)
             break;
 
     FindClose(hFind);
+
     // '.' and '..' are always present.
     return n <= 2;
 #else
@@ -526,6 +526,7 @@ inline bool isEmptyDirectory(const String& path)
             break;
 
     closedir(dir);
+
     // '.' and '..' are always present.
     return n <= 2;
 #endif // _WIN32
@@ -630,8 +631,7 @@ inline bool createDirectory(const String& path)
 #ifdef _WIN32
     if (SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS)
         return true;
-    else
-        return false;
+    return false;
 #else
     // TODO
 #endif // _WIN32
@@ -649,8 +649,7 @@ inline bool deleteFile(const String& path)
 #ifdef _WIN32
     if (DeleteFileA(path.c_str()) != 0)
         return true;
-    else
-        return false;
+    return false;
 #else
     // TODO
 #endif // _WIN32
@@ -830,13 +829,11 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
-
             try {
                 name = var.path().string();
             } catch (Exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-
                 continue;
             }
 
@@ -850,13 +847,11 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
     } else {
         for (auto& var : fs::directory_iterator(path)) {
             String name;
-
             try {
                 name = var.path().string();
             } catch (Exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-
                 continue;
             }
 
@@ -893,29 +888,25 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
-
             try {
                 name = var.path().string();
             } catch (Exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-
                 continue;
             }
 
             if (var.is_regular_file() && (filter == nullptr || filter(name)))
                 files.push_back(name);
-    }
-} else {
+        }
+    } else {
         for (auto& var : fs::directory_iterator(path)) {
             String name;
-
             try {
                 name = var.path().string();
             } catch (Exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
-
                 continue;
             }
 
@@ -948,29 +939,25 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
     if (isRecursive) {
         for (auto& var : fs::recursive_directory_iterator(path)) {
             String name;
-
-            try {
-                name = var.path().string();
-        } catch (Exception&) {
-            if (errorPaths)
-                errorPaths->push_back(var.path().u8string());
-
-            continue;
-        }
-
-        if (var.is_directory() && (filter == nullptr || filter(name)))
-            dirs.push_back(name);
-    }
-} else {
-        for (auto& var : fs::directory_iterator(path)) {
-            String name;
-
             try {
                 name = var.path().string();
             } catch (Exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
+                continue;
+            }
 
+            if (var.is_directory() && (filter == nullptr || filter(name)))
+                dirs.push_back(name);
+        }
+    } else {
+        for (auto& var : fs::directory_iterator(path)) {
+            String name;
+            try {
+                name = var.path().string();
+            } catch (Exception&) {
+                if (errorPaths)
+                    errorPaths->push_back(var.path().u8string());
                 continue;
             }
 
@@ -1025,8 +1012,7 @@ inline bool createFileSymlink(const String& src, const String& dst,
 #ifdef _WIN32
     if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) != 0)
         return true;
-    else
-        return false;
+    return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1069,8 +1055,7 @@ inline bool createDirectorySymlink(const String& src, const String& dst,
 #ifdef _WIN32
     if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) != 0)
         return true;
-    else
-        return false;
+    return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1128,8 +1113,7 @@ inline bool createHardlink(const String& src, const String& dst,
 #ifdef _WIN32
     if (CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) != 0)
         return true;
-    else
-        return false;
+    return false;
 #else
     // TODO
 #endif // _WIN32
@@ -1160,23 +1144,22 @@ namespace btf
 class File
 {
 public:
-    File() : data_(nullptr) {}
+    File() = default;
 
-    explicit File(const String& name) : name_(name), data_(nullptr) {}
+    explicit File(const String& name) : name_(name) {}
 
-    File(const File& other) : data_(nullptr)
+    File(const File& other)
     {
         name_ = other.name_;
 
-        if (other.data_ == nullptr)
-            return;
-
-        data_ = new String(*other.data_);
+        if (other.data_)
+            data_ = new String(*other.data_);
     }
 
     File(File&& other) noexcept
     {
         name_ = other.name_;
+
         data_ = other.data_;
         other.data_ = nullptr;
     }
@@ -1207,7 +1190,7 @@ public:
         ifs.close();
 
         return file;
-}
+    }
 
     String name() const
     {
@@ -1304,10 +1287,8 @@ public:
     {
         clear();
 
-        size_t size = data.size();
-
         data_ = new String;
-        data_->reserve(data_->size() + size);
+        data_->reserve(data_->size() + data.size());
 
         for (auto& var : data)
             data_->push_back(var);
@@ -1319,7 +1300,6 @@ public:
     {
         if (data_ == nullptr)
             data_ = new String;
-
         data_->append(other.data());
 
         return *this;
@@ -1333,11 +1313,9 @@ public:
 
         if (data_ == nullptr)
             data_ = new String();
-
         data_->reserve(data_->size() + size);
 
         char buffer[BUFFER_SIZE] {};
-
         while (is.read(buffer, BUFFER_SIZE))
             data_->append(String(buffer, is.gcount()));
 
@@ -1350,7 +1328,6 @@ public:
     {
         if (data_ == nullptr)
             data_ = new String();
-
         data_->append(data);
 
         return *this;
@@ -1363,7 +1340,6 @@ public:
 
         if (data_ == nullptr)
             data_ = new String;
-
         data_->reserve(data_->size() + size);
 
         for (auto& var : data)
@@ -1381,17 +1357,17 @@ public:
 
 private:
     String name_;
-    String* data_;
+    String* data_ = nullptr;
 };
 
 class Dir
 {
 public:
-    Dir() : subFiles_(nullptr), subDirs_(nullptr) {}
+    Dir() = default;
 
-    explicit Dir(const String& name) : name_(name), subFiles_(nullptr), subDirs_(nullptr) {}
+    explicit Dir(const String& name) : name_(name) {}
 
-    Dir(const Dir& other) : subFiles_(nullptr), subDirs_(nullptr)
+    Dir(const Dir& other)
     {
         name_ = other.name_;
 
@@ -1406,8 +1382,10 @@ public:
     {
         name_ = other.name_;
         other.name_.clear();
+
         subFiles_ = other.subFiles_;
         other.subFiles_ = nullptr;
+
         subDirs_ = other.subDirs_;
         other.subDirs_ = nullptr;
     }
@@ -1783,8 +1761,8 @@ private:
     }
 
     String name_;
-    Vec<File>* subFiles_;
-    Vec<Dir>* subDirs_;
+    Vec<File>* subFiles_ = nullptr;
+    Vec<Dir>* subDirs_ = nullptr;
 };
 
 }
