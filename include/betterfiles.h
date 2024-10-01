@@ -54,16 +54,6 @@
 #define BTF_PATH_SEPARATOR      BTF_PATH_SEPARATOR_LINUX
 #endif // _WIN32
 
-// Some char constexpr.
-#define BTF_CHARV_SPACE     ' '
-#define BTF_CHARV_DOT       '.'
-#define BTF_CHARV_SQUOT     '"'
-#define BTF_CHARV_DQUOT     '"'
-#define BTF_CHARV_END       '\0'
-#define BTF_CHARV_ENTER     '\n'
-
-#define BTF_EMPTY_STR       ""
-
 // Exception infos.
 #ifndef BTF_ERROR_TYPE // Just for the code block to be foldable.
 #define BTF_ERROR_INFO
@@ -76,7 +66,7 @@
 #define BTF_ERR_CP                    "The unsupported character set."
 #endif // !BTF_ERROR_INFO
 
-namespace Btf
+namespace btf
 {
 
 // BetterFiles's type redefine.
@@ -100,9 +90,9 @@ using Exception = std::exception;
 }
 
 #define BTF_ERROR_HINT          "[BetterFiles Error] "
-#define BTF_MKERR(et,added)     (Btf::String(BTF_ERROR_HINT) + et + BTF_CHARV_SPACE + added).c_str()
+#define BTF_MKERR(et,added)     (btf::String(BTF_ERROR_HINT) + et + ' ' + added).c_str()
 
-namespace Btf
+namespace btf
 {
 
 // BetterFiles's constexprs, consts, and enums.
@@ -122,7 +112,7 @@ enum WritePolicy : uchar
 #ifdef BTF_CPP17
 #include <string_view>
 #include <filesystem>
-namespace Btf
+namespace btf
 {
 
 namespace Fs = std::filesystem;
@@ -147,7 +137,7 @@ namespace Fs = std::filesystem;
 #include <dirent.h>
 #endif  // _WIN32
 
-namespace Btf
+namespace btf
 {
 
 // BetterFiles's aux functions.
@@ -164,7 +154,7 @@ inline WString string2wstring(const String &str) {
     if (rtn == 0) {
         return result;
     }
-    buffer[len] = BTF_CHARV_END;
+    buffer[len] {};
     result = buffer;
     delete[] buffer;
 #else
@@ -185,7 +175,7 @@ inline String wstring2string(const WString &wstr) {
     if (rtn == 0) {
         return result;
     }
-    buffer[len] = BTF_CHARV_END;
+    buffer[len] {};
     result = buffer;
     delete[] buffer;
 #else
@@ -205,7 +195,7 @@ HANDLE getFileHandle(const String &path) {
 
 #endif // BTF_CPP17
 
-namespace Btf
+namespace btf
 {
 
 // BetterFiles's utility functions.
@@ -228,7 +218,7 @@ inline String normalizePathC(const String &path, bool removeDQuot = true) {
     }
     size_t len = 0;
     for (size_t pos = 0; pos < _path.size(); ++pos) {
-        if (removeDQuot && _path[pos] == BTF_CHARV_DQUOT) {
+        if (removeDQuot && _path[pos] == '"') {
             _path.erase(pos, 1);
             continue;
         }
@@ -271,7 +261,7 @@ inline String &normalizePath(String &path, bool removeDQuot = true) {
     }
     size_t len = 0;
     for (size_t pos = 0; pos < path.size(); ++pos) {
-        if (removeDQuot && path[pos] == BTF_CHARV_DQUOT) {
+        if (removeDQuot && path[pos] == '"') {
             path.erase(pos, 1);
             continue;
         }
@@ -346,7 +336,7 @@ inline String getPathSuffix(const String &path) {
         }
     }
     if (pos == path.size() - 1) {
-        return BTF_EMPTY_STR;
+        return "";
     }
     return path.substr(pos + 1);
 #endif // BTF_CPP17
@@ -359,7 +349,7 @@ inline String getFileName(const String &path) {
     return Fs::path(path).filename().replace_extension().string();
 #else
     String _path = getPathSuffix(path);
-    size_t pos = _path.rfind(BTF_CHARV_DOT);
+    size_t pos = _path.rfind('.');
     if (pos == _path.npos) {
         return _path;
     } else {
@@ -376,12 +366,12 @@ inline String getFileExtension(const String &path) {
     return Fs::path(path).filename().extension().string();
 #else
     String _path = getPathSuffix(path);
-    size_t pos = _path.rfind(BTF_CHARV_DOT);
+    size_t pos = _path.rfind('.');
     if (pos == _path.npos) {
         return _path;
     } else {
         if (pos == _path.size() - 1) {
-            return BTF_EMPTY_STR;
+            return "";
         }
         return _path.substr(pos + 1);
     }
@@ -1129,29 +1119,29 @@ inline uintmax_t getHardlinkCount(const String &path) {
 
 }
 
-namespace Btf
+namespace btf
 {
 // BetterFiles's classes.
 
 class File
 {
 public:
-    File() : mData(nullptr) {}
+    File() : data_(nullptr) {}
 
-    explicit File(const String &name) : mName(name), mData(nullptr) {}
+    explicit File(const String &name) : name_(name), data_(nullptr) {}
 
-    File(const File &other) : mData(nullptr) {
-        mName = other.mName;
-        if (other.mData == nullptr) {
+    File(const File &other) : data_(nullptr) {
+        name_ = other.name_;
+        if (other.data_ == nullptr) {
             return;
         }
-        mData = new String(*other.mData);
+        data_ = new String(*other.data_);
     }
 
     File(File &&other) noexcept {
-        mName = other.mName;
-        mData = other.mData;
-        other.mData = nullptr;
+        name_ = other.name_;
+        data_ = other.data_;
+        other.data_ = nullptr;
     }
 
     ~File() {
@@ -1178,53 +1168,53 @@ public:
     }
 
     String name() const {
-        return mName;
+        return name_;
     }
 
     String data() const {
-        if (mData == nullptr) {
+        if (data_ == nullptr) {
             return String();
         }
-        return *mData;
+        return *data_;
     }
 
     size_t size() const {
-        if (mData == nullptr) {
+        if (data_ == nullptr) {
             return 0;
         }
-        return mData->size();
+        return data_->size();
     }
 
     bool empty() const {
-        if (mData == nullptr) {
+        if (data_ == nullptr) {
             return true;
         }
-        return mData->empty();
+        return data_->empty();
     }
 
     void setName(const String &name) {
-        mName = name;
+        name_ = name;
     }
 
     void clear() {
-        if (mData == nullptr) {
+        if (data_ == nullptr) {
             return;
         }
-        delete mData;
-        mData = nullptr;
+        delete data_;
+        data_ = nullptr;
     }
 
     void write(OStream &os) const {
-        if (mData == nullptr) {
+        if (data_ == nullptr) {
             return;
         }
-        os << *mData;
+        os << *data_;
     }
 
     void write(const String &path, WritePolicy policy = Skip,
                std::ios_base::openmode openmode = std::ios_base::binary) const {
         String _path = path.data();
-        _path += BTF_PATH_SEPARATOR + mName;
+        _path += BTF_PATH_SEPARATOR + name_;
         if (isExistsFile(_path) && policy == Skip) {
             return;
         }
@@ -1238,73 +1228,73 @@ public:
     }
 
     File &operator=(const File &other) {
-        mName = other.mName;
+        name_ = other.name_;
         clear();
-        if (other.mData) {
-            mData = new String(*other.mData);
+        if (other.data_) {
+            data_ = new String(*other.data_);
         }
         return *this;
     }
 
     File &operator=(const String &data) {
         clear();
-        mData = new String(data);
+        data_ = new String(data);
         return *this;
     }
 
     template<typename T>
     File &operator=(const std::vector<T> &data) {
         clear();
-        mData = new String;
+        data_ = new String;
         size_t size = data.size();
-        mData->reserve(mData->size() + size);
+        data_->reserve(data_->size() + size);
         for (auto &var : data) {
-            mData->push_back(var);
+            data_->push_back(var);
         }
         return *this;
     }
 
     File &operator<<(const File &other) {
-        if (mData == nullptr) {
-            mData = new String;
+        if (data_ == nullptr) {
+            data_ = new String;
         }
-        mData->append(other.data());
+        data_->append(other.data());
         return *this;
     }
 
     File &operator<<(IStream &is) {
-        if (mData == nullptr) {
-            mData = new String();
+        if (data_ == nullptr) {
+            data_ = new String();
         }
         is.seekg(0, std::ios_base::end);
         size_t size = is.tellg();
         is.seekg(0, std::ios_base::beg);
-        mData->reserve(mData->size() + size);
+        data_->reserve(data_->size() + size);
         char buffer[kBufferSize] {};
         while (is.read(buffer, kBufferSize)) {
-            mData->append(String(buffer, is.gcount()));
+            data_->append(String(buffer, is.gcount()));
         }
-        mData->append(String(buffer, is.gcount()));
+        data_->append(String(buffer, is.gcount()));
         return *this;
     }
 
     File &operator<<(const String &data) {
-        if (mData == nullptr) {
-            mData = new String();
+        if (data_ == nullptr) {
+            data_ = new String();
         }
-        mData->append(data);
+        data_->append(data);
         return *this;
     }
 
     template<typename T>
     File &operator<<(const std::vector<T> &data) {
-        if (mData == nullptr) {
-            mData = new String;
+        if (data_ == nullptr) {
+            data_ = new String;
         }
         size_t size = data.size();
-        mData->reserve(mData->size() + size);
+        data_->reserve(data_->size() + size);
         for (auto &var : data) {
-            mData->push_back(var);
+            data_->push_back(var);
         }
         return *this;
     }
@@ -1315,34 +1305,34 @@ public:
     }
 
 private:
-    String mName;
-    String *mData;
+    String name_;
+    String *data_;
 };
 
 class Dir
 {
 public:
-    Dir() : mSubFiles(nullptr), mSubDirs(nullptr) {}
+    Dir() : subFiles_(nullptr), subDirs_(nullptr) {}
 
-    explicit Dir(const String &name) : mName(name), mSubFiles(nullptr), mSubDirs(nullptr) {}
+    explicit Dir(const String &name) : name_(name), subFiles_(nullptr), subDirs_(nullptr) {}
 
-    Dir(const Dir &other) : mSubFiles(nullptr), mSubDirs(nullptr) {
-        mName = other.mName;
-        if (other.mSubFiles) {
-            mSubFiles = new Vec<File>(*other.mSubFiles);
+    Dir(const Dir &other) : subFiles_(nullptr), subDirs_(nullptr) {
+        name_ = other.name_;
+        if (other.subFiles_) {
+            subFiles_ = new Vec<File>(*other.subFiles_);
         }
-        if (other.mSubDirs) {
-            mSubDirs = new Vec<Dir>(*other.mSubDirs);
+        if (other.subDirs_) {
+            subDirs_ = new Vec<Dir>(*other.subDirs_);
         }
     }
 
     Dir(Dir &&other) noexcept {
-        mName = other.mName;
-        other.mName.clear();
-        mSubFiles = other.mSubFiles;
-        other.mSubFiles = nullptr;
-        mSubDirs = other.mSubDirs;
-        other.mSubDirs = nullptr;
+        name_ = other.name_;
+        other.name_.clear();
+        subFiles_ = other.subFiles_;
+        other.subFiles_ = nullptr;
+        subDirs_ = other.subDirs_;
+        other.subDirs_ = nullptr;
     }
 
     ~Dir() {
@@ -1375,18 +1365,18 @@ public:
     }
 
     String name() const {
-        return mName;
+        return name_;
     }
 
     size_t size() const {
         size_t size = 0;
-        if (mSubFiles) {
-            for (auto &var : *mSubFiles) {
+        if (subFiles_) {
+            for (auto &var : *subFiles_) {
                 size += var.size();
             }
         }
-        if (mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (subDirs_) {
+            for (auto &var : *subDirs_) {
                 size += var.size();
             }
         }
@@ -1395,11 +1385,11 @@ public:
 
     size_t fileCount(bool isRecursive = true) const {
         size_t cnt = 0;
-        if (mSubFiles) {
-            cnt += mSubFiles->size();
+        if (subFiles_) {
+            cnt += subFiles_->size();
         }
-        if (isRecursive && mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (isRecursive && subDirs_) {
+            for (auto &var : *subDirs_) {
                 cnt += var.fileCount();
             }
         }
@@ -1408,11 +1398,11 @@ public:
 
     size_t dirCount(bool isRecursive = true) const {
         size_t cnt = 0;
-        if (mSubDirs) {
-            cnt += mSubDirs->size();
+        if (subDirs_) {
+            cnt += subDirs_->size();
         }
-        if (isRecursive && mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (isRecursive && subDirs_) {
+            for (auto &var : *subDirs_) {
                 cnt += var.dirCount();
             }
         }
@@ -1424,16 +1414,16 @@ public:
     }
 
     bool empty() const {
-        return (mSubFiles == nullptr || mSubFiles->empty()) &&
-            (mSubDirs == nullptr || mSubDirs->empty());
+        return (subFiles_ == nullptr || subFiles_->empty()) &&
+            (subDirs_ == nullptr || subDirs_->empty());
     }
 
     bool hasFile(const String &name, bool isRecursive = false) const {
-        if (_hasFile(name) != 0) {
+        if (hasFile_(name) != 0) {
             return true;
         }
-        if (isRecursive && mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (isRecursive && subDirs_) {
+            for (auto &var : *subDirs_) {
                 if (var.hasFile(name, true)) {
                     return true;
                 }
@@ -1443,11 +1433,11 @@ public:
     }
 
     bool hasDir(const String &name, bool isRecursive = false) const {
-        if (_hasDir(name) != 0) {
+        if (hasDir_(name) != 0) {
             return true;
         }
-        if (isRecursive && mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (isRecursive && subDirs_) {
+            for (auto &var : *subDirs_) {
                 if (var.hasDir(name, true)) {
                     return true;
                 }
@@ -1457,57 +1447,57 @@ public:
     }
 
     void setName(const String &name) {
-        mName = name;
+        name_ = name;
     }
 
     const Vec<File> &files() const {
-        return *mSubFiles;
+        return *subFiles_;
     }
 
     const Vec<Dir> &dirs() const {
-        return *mSubDirs;
+        return *subDirs_;
     }
 
     Vec<File> &files() {
-        return *mSubFiles;
+        return *subFiles_;
     }
 
     Vec<Dir> &dirs() {
-        return *mSubDirs;
+        return *subDirs_;
     }
 
     File &file(const String &name) {
-        size_t pos = _hasFile(name);
+        size_t pos = hasFile_(name);
         if (pos == 0) {
             addFile(name);
-            return mSubFiles->back();
+            return subFiles_->back();
         }
-        return (*mSubFiles)[pos - 1];
+        return (*subFiles_)[pos - 1];
     }
 
     Dir &dir(const String &name) {
-        size_t pos = _hasDir(name);
+        size_t pos = hasDir_(name);
         if (pos == 0) {
             addDir(name);
-            return mSubDirs->back();
+            return subDirs_->back();
         }
-        return (*mSubDirs)[pos - 1];
+        return (*subDirs_)[pos - 1];
     }
 
     void removeFile(const String &name) {
-        size_t pos = _hasFile(name);
+        size_t pos = hasFile_(name);
         if (pos == 0) {
             return;
         }
-        mSubFiles->erase(mSubFiles->begin() + pos - 1);
+        subFiles_->erase(subFiles_->begin() + pos - 1);
     }
 
     void removeDir(const String &name) {
-        size_t pos = _hasDir(name);
+        size_t pos = hasDir_(name);
         if (pos == 0) {
             return;
         }
-        mSubDirs->erase(mSubDirs->begin() + pos - 1);
+        subDirs_->erase(subDirs_->begin() + pos - 1);
     }
 
     void remove(const File &file) {
@@ -1519,45 +1509,45 @@ public:
     }
 
     void clearFiles() {
-        if (mSubFiles) {
-            delete mSubFiles;
-            mSubFiles = nullptr;
+        if (subFiles_) {
+            delete subFiles_;
+            subFiles_ = nullptr;
         }
     }
 
     void clearDirs() {
-        if (mSubDirs) {
-            delete mSubDirs;
-            mSubDirs = nullptr;
+        if (subDirs_) {
+            delete subDirs_;
+            subDirs_ = nullptr;
         }
     }
 
     void add(File &file, WritePolicy policy = Skip) {
-        if (mSubFiles == nullptr) {
-            mSubFiles = new Vec<File>();
+        if (subFiles_ == nullptr) {
+            subFiles_ = new Vec<File>();
         }
-        size_t pos = _hasFile(file.name());
+        size_t pos = hasFile_(file.name());
         if (pos != 0) {
             if (policy == Override) {
-                (*mSubFiles)[pos] = std::move(file);
+                (*subFiles_)[pos] = std::move(file);
             }
             return;
         }
-        mSubFiles->emplace_back(std::move(file));
+        subFiles_->emplace_back(std::move(file));
     }
 
     void add(Dir &dir, WritePolicy policy = Skip) {
-        if (mSubDirs == nullptr) {
-            mSubDirs = new Vec<Dir>();
+        if (subDirs_ == nullptr) {
+            subDirs_ = new Vec<Dir>();
         }
-        size_t pos = _hasDir(dir.name());
+        size_t pos = hasDir_(dir.name());
         if (pos != 0) {
             if (policy == Override) {
-                (*mSubDirs)[pos] = std::move(dir);
+                (*subDirs_)[pos] = std::move(dir);
             }
             return;
         }
-        mSubDirs->emplace_back(std::move(dir));
+        subDirs_->emplace_back(std::move(dir));
     }
 
     void add(File &&file) {
@@ -1578,31 +1568,31 @@ public:
 
     void write(const String &path, WritePolicy policy = Skip,
                std::ios_base::openmode openmode = std::ios_base::binary) const {
-        String root = String(path) + BTF_PATH_SEPARATOR + mName;
+        String root = String(path) + BTF_PATH_SEPARATOR + name_;
         createDirectory(root);
 
-        if (mSubFiles) {
-            for (auto &var : *mSubFiles) {
+        if (subFiles_) {
+            for (auto &var : *subFiles_) {
                 var.write(root, policy, openmode);
             }
         }
 
-        if (mSubDirs) {
-            for (auto &var : *mSubDirs) {
+        if (subDirs_) {
+            for (auto &var : *subDirs_) {
                 var.write(root, policy);
             }
         }
     }
 
     Dir &operator=(const Dir &other) {
-        mName = other.mName;
+        name_ = other.name_;
         clearFiles();
         clearDirs();
-        if (other.mSubFiles) {
-            mSubFiles = new Vec<File>(*other.mSubFiles);
+        if (other.subFiles_) {
+            subFiles_ = new Vec<File>(*other.subFiles_);
         }
-        if (other.mSubDirs) {
-            mSubDirs = new Vec<Dir>(*other.mSubDirs);
+        if (other.subDirs_) {
+            subDirs_ = new Vec<Dir>(*other.subDirs_);
         }
         return *this;
     }
@@ -1636,10 +1626,10 @@ public:
     }
 
 private:
-    size_t _hasFile(const String &name) const {
-        if (mSubFiles) {
-            for (size_t i = 0; i < mSubFiles->size(); ++i) {
-                if ((*mSubFiles)[i].name() == name) {
+    size_t hasFile_(const String &name) const {
+        if (subFiles_) {
+            for (size_t i = 0; i < subFiles_->size(); ++i) {
+                if ((*subFiles_)[i].name() == name) {
                     return i + 1;
                 }
             }
@@ -1647,10 +1637,10 @@ private:
         return 0;
     }
 
-    size_t _hasDir(const String &name) const {
-        if (mSubDirs) {
-            for (size_t i = 0; i < mSubDirs->size(); ++i) {
-                if ((*mSubDirs)[i].name() == name) {
+    size_t hasDir_(const String &name) const {
+        if (subDirs_) {
+            for (size_t i = 0; i < subDirs_->size(); ++i) {
+                if ((*subDirs_)[i].name() == name) {
                     return i + 1;
                 }
             }
@@ -1658,9 +1648,9 @@ private:
         return 0;
     }
 
-    String mName;
-    Vec<File> *mSubFiles;
-    Vec<Dir> *mSubDirs;
+    String name_;
+    Vec<File> *subFiles_;
+    Vec<Dir> *subDirs_;
 };
 
 }
