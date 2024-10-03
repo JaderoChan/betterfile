@@ -89,7 +89,7 @@ using Exception = std::exception;
 
 }
 
-#define BTF_ERROR_HINT          "[BetterFiles Error] "
+#define BTF_ERROR_HINT          "[BetterFile Error] "
 #define BTF_MKERR(et,added)     (btf::String(BTF_ERROR_HINT) + et + ' ' + added).c_str()
 
 namespace btf
