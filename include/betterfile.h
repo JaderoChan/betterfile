@@ -33,7 +33,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
-#include <exception>
+#include <stdexcept>
 
 #ifdef _MSVC_LANG
 #define BTF_CPPVERS     _MSVC_LANG
@@ -79,18 +79,11 @@ using Vec = std::vector<T>;
 using String = std::string;
 using WString = std::wstring;
 using Strings = Vec<String>;
-using IOStream = std::iostream;
-using IStream = std::istream;
-using OStream = std::ostream;
-using FStream = std::fstream;
-using IFStream = std::ifstream;
-using OFStream = std::ofstream;
-using Exception = std::exception;
 
 }
 
 #define BTF_ERROR_HINT          "[BetterFile Error] "
-#define BTF_MKERR(et,added)     (btf::String(BTF_ERROR_HINT) + et + ' ' + added).c_str()
+#define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERROR_HINT) + et + " " + added)
 
 namespace btf
 {
@@ -158,7 +151,6 @@ inline WString string2wstring(const String& str)
     if (rtn == 0)
         return result;
 
-    buffer[len] {};
     result = buffer;
 
     delete[] buffer;
@@ -183,7 +175,6 @@ inline String wstring2string(const WString& wstr)
     if (rtn == 0)
         return result;
 
-    buffer[len] {};
     result = buffer;
 
     delete[] buffer;
@@ -386,12 +377,9 @@ inline String getFileExtension(const String& path)
     size_t pos = _path.rfind('.');
 
     if (pos == _path.npos)
-        return _path;
-
-    if (pos == _path.size() - 1)
         return "";
 
-    return _path.substr(pos + 1);
+    return _path.substr(pos);
 #endif // BTF_CPP17
 }
 
@@ -421,7 +409,10 @@ inline String pathcat(const String& path1, const String& path2)
 // @attention Just base string, not check the actually path.
 inline String changeFileName(const String& path, const String& newname)
 {
-    return pathcat(getPathPrefix(path), newname + getFileExtension(path));
+    String prefix = getPathPrefix(path);
+    if(normalizePathC(path) == prefix)
+        return path;
+    return pathcat(prefix, newname + getFileExtension(path));
 }
 
 // @brief Whether file or directory exists.
@@ -475,7 +466,7 @@ inline bool isExistsDirectory(const String& path)
 inline bool isEmptyFile(const String& path)
 {
     if (!isExistsFile(path)) {
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
     }
 #ifdef BTF_CPP17
     return fs::is_empty(path);
@@ -494,19 +485,19 @@ inline bool isEmptyFile(const String& path)
 inline bool isEmptyDirectory(const String& path)
 {
     if (!isExistsFile(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
     return fs::is_empty(path);
 #else
 #ifdef _WIN32
-    WIN32_FIND_DATA findData;
-    HANDLE hFind = FindFirstFileW(string2wstring(path + "\\*").c_str(), &findData);
+    WIN32_FIND_DATAA findData;
+    HANDLE hFind = FindFirstFileA((path + "\\*").c_str(), &findData);
 
     if (hFind == INVALID_HANDLE_VALUE)
         return true;
 
     int n = 0;
-    while (FindNextFileW(hFind, &findData) != 0)
+    while (FindNextFileA(hFind, &findData) != 0)
         if (++n > 2)
             break;
 
@@ -541,7 +532,7 @@ inline bool isEmptyDirectory(const String& path)
 inline bool isEmpty(const String& path)
 {
     if (!isExists(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 
     return isEmptyFile(path) || isEmptyDirectory(path);
 }
@@ -557,15 +548,14 @@ inline String getCurrentPath()
     if (GetCurrentDirectoryA(MAX_PATH, path) != 0)
         return path;
     else
-        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
+        throw BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetCurrentDirectoryA(), the error code is " +
-                                  std::to_string(GetLastError())));
+                                  std::to_string(GetLastError()));
 #else
     if (getcwd(path, PATH_MAX))
         return path;
     else
-        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
-                                  "Error in getcwd()."));
+        throw BTF_MKERR(BTF_ERR_FAILED_OSAPI, "Error in getcwd().");
 #endif // _WIN32
 #endif // BTF_CPP17
 }
@@ -574,7 +564,7 @@ inline String getCurrentPath()
 inline uintmax_t getFileSize(const String& path)
 {
     if (!isExistsFile(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
     return fs::file_size(path);
 #else
@@ -582,9 +572,9 @@ inline uintmax_t getFileSize(const String& path)
     DWORD size = GetFileSize(getFileHandle(path), NULL);
 
     if (size == INVALID_FILE_SIZE)
-        throw Exception(BTF_MKERR(BTF_ERR_FAILED_OSAPI,
+        throw BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetFileSize(), the error code is " +
-                                  std::to_string(GetLastError())));
+                                  std::to_string(GetLastError()));
 
     return size;
 #else
@@ -598,7 +588,7 @@ inline uintmax_t getDirectorySize(const String& path)
 {
     uintmax_t result = 0;
     if (!isExistsDirectory(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
     for (auto& var : fs::recursive_directory_iterator(path))
         result += var.file_size();
@@ -621,7 +611,7 @@ inline uintmax_t getSize(const String& path)
     else if (isExistsDirectory(path))
         return getDirectorySize(path);
     else
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 }
 
 inline bool createDirectory(const String& path)
@@ -822,7 +812,7 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
                                     bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 
     Strings dirs;
     Strings files;
@@ -832,7 +822,7 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -850,7 +840,7 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -882,7 +872,7 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
                     bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 
     Strings files;
 #ifdef BTF_CPP17
@@ -891,7 +881,7 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -905,7 +895,7 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -933,7 +923,7 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
                          bool (*filter) (const String&) = nullptr)
 {
     if (!isExistsDirectory(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 
     Strings dirs;
 #ifdef BTF_CPP17
@@ -942,7 +932,7 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -956,7 +946,7 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
             String name;
             try {
                 name = var.path().string();
-            } catch (Exception&) {
+            } catch (std::exception&) {
                 if (errorPaths)
                     errorPaths->push_back(var.path().u8string());
                 continue;
@@ -1124,7 +1114,7 @@ inline bool createHardlink(const String& src, const String& dst,
 inline uintmax_t getHardlinkCount(const String& path)
 {
     if (!isExists(path))
-        throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path));
+        throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
     return fs::hard_link_count(path);
 #else
@@ -1178,12 +1168,12 @@ public:
     static File fromPath(const String& filename)
     {
         if (!isExistsFile(filename))
-            throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filename));
+            throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, filename);
 
-        IFStream ifs(filename.data(), std::ios_base::binary);
+        std::ifstream ifs(filename.data(), std::ios_base::binary);
 
         if (!ifs.is_open())
-            throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filename));
+            throw BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filename);
 
         File file(getPathSuffix(filename));
         file << ifs;
@@ -1233,7 +1223,7 @@ public:
         data_ = nullptr;
     }
 
-    void write(OStream& os) const
+    void write(std::ostream& os) const
     {
         if (data_ == nullptr)
             return;
@@ -1249,10 +1239,10 @@ public:
         if (isExistsFile(_path) && wp == SKIP)
             return;
 
-        OFStream ofs(_path.data(), openmode);
+        std::ofstream ofs(_path.data(), openmode);
 
         if (!ofs.is_open())
-            throw Exception(BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, _path));
+            throw BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, _path);
 
         write(ofs);
 
@@ -1303,7 +1293,7 @@ public:
         return *this;
     }
 
-    File& operator<<(IStream& is)
+    File& operator<<(std::istream& is)
     {
         is.seekg(0, std::ios_base::end);
         size_t size = is.tellg();
@@ -1313,7 +1303,7 @@ public:
             data_ = new String();
         data_->reserve(data_->size() + size);
 
-        char buffer[BUFFER_SIZE] {};
+        char buffer[BUFFER_SIZE] = {};
         while (is.read(buffer, BUFFER_SIZE))
             data_->append(String(buffer, is.gcount()));
 
@@ -1346,7 +1336,7 @@ public:
         return *this;
     }
 
-    const File& operator>>(OStream& os) const
+    const File& operator>>(std::ostream& os) const
     {
         write(os);
 
@@ -1402,7 +1392,7 @@ public:
     static Dir fromPath(const String& dirpath)
     {
         if (!isExistsDirectory(dirpath))
-            throw Exception(BTF_MKERR(BTF_ERR_UNEXISTS_PATH, dirpath));
+            throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, dirpath);
 
         Dir root(getPathSuffix(dirpath));
 
