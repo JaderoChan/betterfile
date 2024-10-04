@@ -95,7 +95,7 @@ using Exception = std::exception;
 namespace btf
 {
 
-// constexprs, consts, and enums.
+// constexprs and enums.
 
 constexpr uint BUFFER_SIZE = 4096;
 
@@ -120,6 +120,7 @@ namespace fs = std::filesystem;
 }
 #else
 #include <sys/stat.h>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <io.h>
