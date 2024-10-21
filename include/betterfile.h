@@ -103,7 +103,6 @@ enum WritePolicy : uchar
 }
 
 #ifdef BTF_CPP17
-#include <string_view>
 #include <filesystem>
 namespace btf
 {
@@ -123,7 +122,7 @@ namespace fs = std::filesystem;
 #undef min
 #undef max
 
-#define BTF_ACCESS _access
+#define BTF_ACCESS ::_access
 #define BTF_F_OK 0
 
 #else
@@ -140,13 +139,13 @@ inline WString string2wstring(const String& str)
 {
     WString result;
 #ifdef _WIN32
-    int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), NULL, 0);
+    int len = ::MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), NULL, 0);
 
     if (len == 0)
         return result;
 
     wchar_t* buffer = new wchar_t[len + 1];
-    int rtn = MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), buffer, len);
+    int rtn = ::MultiByteToWideChar(CP_ACP, 0, str.c_str(), (int) str.size(), buffer, len);
 
     if (rtn == 0)
         return result;
@@ -164,14 +163,14 @@ inline String wstring2string(const WString& wstr)
 {
     String result;
 #ifdef _WIN32
-    int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
+    int len = ::WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
                                   NULL, 0, NULL, NULL);
 
     if (len == 0)
         return result;
 
     char* buffer = new char[len + 1];
-    int rtn = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
+    int rtn = ::WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
                                   buffer, len, NULL, NULL);
 
     if (rtn == 0)
@@ -190,7 +189,7 @@ inline String wstring2string(const WString& wstr)
 HANDLE getFileHandle(const String& path)
 {
     WIN32_FIND_DATAA fd;
-    return FindFirstFileA(path.c_str(), &fd);
+    return ::FindFirstFileA(path.c_str(), &fd);
 }
 #endif // _WIN32
 
@@ -436,12 +435,12 @@ inline bool isExistsFile(const String& path)
 #else
     struct stat path_stat;
 
-    if (stat(path.c_str(), &path_stat) != 0)
+    if (::stat(path.c_str(), &path_stat) != 0)
         return false;
 #ifdef _WIN32
     return path_stat.st_mode == _S_IFREG;
 #else
-    return S_ISREG(path_stat.st_mode);
+    return ::S_ISREG(path_stat.st_mode);
 #endif // _WIN32
 #endif // BTF_CPP17
 }
@@ -454,12 +453,12 @@ inline bool isExistsDirectory(const String& path)
 #else
     struct stat path_stat;
 
-    if (stat(path.c_str(), &path_stat) != 0)
+    if (::stat(path.c_str(), &path_stat) != 0)
         return false;
 #ifdef _WIN32
     return path_stat.st_mode == _S_IFDIR;
 #else
-    return S_ISDIR(path_stat.st_mode);
+    return ::S_ISDIR(path_stat.st_mode);
 #endif // _WIN32
 #endif // BTF_CPP17
 }
@@ -476,7 +475,7 @@ inline bool isEmptyFile(const String& path)
 #else
     struct stat path_stat;
 
-    if (stat(path.c_str(), &path_stat) != 0)
+    if (::stat(path.c_str(), &path_stat) != 0)
         return true;
 
     return path_stat.st_size == 0;
@@ -494,33 +493,33 @@ inline bool isEmptyDirectory(const String& path)
 #else
 #ifdef _WIN32
     WIN32_FIND_DATAA findData;
-    HANDLE hFind = FindFirstFileA((path + "\\*").c_str(), &findData);
+    HANDLE hFind = ::FindFirstFileA((path + "\\*").c_str(), &findData);
 
     if (hFind == INVALID_HANDLE_VALUE)
         return true;
 
     int n = 0;
-    while (FindNextFileA(hFind, &findData) != 0)
+    while (::FindNextFileA(hFind, &findData) != 0)
         if (++n > 2)
             break;
 
-    FindClose(hFind);
+    ::FindClose(hFind);
 
     // '.' and '..' are always present.
     return n <= 2;
 #else
     struct dirent* d;
-    DIR* dir = opendir(path.c_str());
+    DIR* dir = ::opendir(path.c_str());
 
     if (dir == nullptr)
         return true;
 
     int n = 0;
-    while ((d = readdir(dir)))
+    while ((d = ::readdir(dir)))
         if (++n > 2)
             break;
 
-    closedir(dir);
+    ::closedir(dir);
 
     // '.' and '..' are always present.
     return n <= 2;
@@ -548,14 +547,14 @@ inline String getCurrentPath()
 #else
     char path[MAX_PATH] = {};
 #ifdef _WIN32
-    if (GetCurrentDirectoryA(MAX_PATH, path) != 0)
+    if (::GetCurrentDirectoryA(MAX_PATH, path) != 0)
         return path;
     else
         throw BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetCurrentDirectoryA(), the error code is " +
-                                  std::to_string(GetLastError()));
+                                  std::to_string(::GetLastError()));
 #else
-    if (getcwd(path, PATH_MAX))
+    if (::getcwd(path, PATH_MAX))
         return path;
     else
         throw BTF_MKERR(BTF_ERR_FAILED_OSAPI, "Error in getcwd().");
@@ -572,12 +571,12 @@ inline uintmax_t getFileSize(const String& path)
     return fs::file_size(path);
 #else
 #ifdef _WIN32
-    DWORD size = GetFileSize(getFileHandle(path), NULL);
+    DWORD size = ::GetFileSize(getFileHandle(path), NULL);
 
     if (size == INVALID_FILE_SIZE)
         throw BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetFileSize(), the error code is " +
-                                  std::to_string(GetLastError()));
+                                  std::to_string(::GetLastError()));
 
     return size;
 #else
@@ -623,7 +622,7 @@ inline bool createDirectory(const String& path)
     return fs::create_directories(path);
 #else
 #ifdef _WIN32
-    if (SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS)
+    if (::SHCreateDirectoryExA(NULL, path.c_str(), NULL) == ERROR_SUCCESS)
         return true;
     return false;
 #else
@@ -641,7 +640,7 @@ inline bool deleteFile(const String& path)
     return fs::remove(path);
 #else
 #ifdef _WIN32
-    if (DeleteFileA(path.c_str()) != 0)
+    if (::DeleteFileA(path.c_str()) != 0)
         return true;
     return false;
 #else
@@ -1004,7 +1003,7 @@ inline bool createFileSymlink(const String& src, const String& dst,
     return true;
 #else
 #ifdef _WIN32
-    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) != 0)
+    if (::CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 0) != 0)
         return true;
     return false;
 #else
@@ -1047,7 +1046,7 @@ inline bool createDirectorySymlink(const String& src, const String& dst,
     return true;
 #else
 #ifdef _WIN32
-    if (CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) != 0)
+    if (::CreateSymbolicLinkA(_dst.c_str(), src.c_str(), 1) != 0)
         return true;
     return false;
 #else
@@ -1105,7 +1104,7 @@ inline bool createHardlink(const String& src, const String& dst,
     return true;
 #else
 #ifdef _WIN32
-    if (CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) != 0)
+    if (::CreateHardLinkA(_dst.c_str(), src.c_str(), NULL) != 0)
         return true;
     return false;
 #else
