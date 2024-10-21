@@ -111,8 +111,9 @@ namespace fs = std::filesystem;
 
 }
 #else
-#include <sys/stat.h>
 #include <algorithm>
+
+#include <sys/stat.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -186,9 +187,9 @@ inline String wstring2string(const WString& wstr)
 }
 
 #ifdef _WIN32
-HANDLE getFileHandle(const String& path)
+::HANDLE getFileHandle(const String& path)
 {
-    WIN32_FIND_DATAA fd;
+    ::WIN32_FIND_DATAA fd;
     return ::FindFirstFileA(path.c_str(), &fd);
 }
 #endif // _WIN32
@@ -486,16 +487,16 @@ inline bool isEmptyFile(const String& path)
 // @note If the directory is not exists, throw exception.
 inline bool isEmptyDirectory(const String& path)
 {
-    if (!isExistsFile(path))
+    if (!isExistsDirectory(path))
         throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
     return fs::is_empty(path);
 #else
 #ifdef _WIN32
-    WIN32_FIND_DATAA findData;
-    HANDLE hFind = ::FindFirstFileA((path + "\\*").c_str(), &findData);
+    ::WIN32_FIND_DATAA findData;
+    ::HANDLE hFind = ::FindFirstFileA((path + "\\*").c_str(), &findData);
 
-    if (hFind == INVALID_HANDLE_VALUE)
+    if (hFind == ((::HANDLE) (::LONG_PTR)-1))
         return true;
 
     int n = 0;
@@ -536,7 +537,10 @@ inline bool isEmpty(const String& path)
     if (!isExists(path))
         throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 
-    return isEmptyFile(path) || isEmptyDirectory(path);
+    if(isExistsFile(path))
+        return isEmptyFile(path);
+    else
+        return isEmptyDirectory(path);
 }
 
 // @brief Get current working directory path of program.
@@ -571,9 +575,9 @@ inline uintmax_t getFileSize(const String& path)
     return fs::file_size(path);
 #else
 #ifdef _WIN32
-    DWORD size = ::GetFileSize(getFileHandle(path), NULL);
+    ::DWORD size = ::GetFileSize(getFileHandle(path), NULL);
 
-    if (size == INVALID_FILE_SIZE)
+    if (size == ((::DWORD) 0xffffffff))
         throw BTF_MKERR(BTF_ERR_FAILED_OSAPI,
                                   "Error in GetFileSize(), the error code is " +
                                   std::to_string(::GetLastError()));
