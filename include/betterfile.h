@@ -164,13 +164,15 @@ inline String wstring2string(const WString& wstr)
 {
     String result;
 #ifdef _WIN32
-    int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
+    int len = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
+                                  NULL, 0, NULL, NULL);
 
     if (len == 0)
         return result;
 
     char* buffer = new char[len + 1];
-    int rtn = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(), buffer, len, NULL, NULL);
+    int rtn = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), (int) wstr.size(),
+                                  buffer, len, NULL, NULL);
 
     if (rtn == 0)
         return result;
@@ -401,7 +403,8 @@ inline String pathcat(const String& path1, const String& path2)
     return path1 + BTF_PATH_SEPARATOR + path2;
 }
 
-// @brief Get the filename of the path (no include file extension) and chang the filename to new filename.
+// @brief Get the filename of the path (no include file extension)
+// and chang the filename to new filename.
 // @param path The full path.
 // @param newname The new filename.
 // @return Return the full path after change the filename.
@@ -543,7 +546,7 @@ inline String getCurrentPath()
 #ifdef BTF_CPP17
     return fs::current_path().string();
 #else
-    char path[MAX_PATH];
+    char path[MAX_PATH] = {};
 #ifdef _WIN32
     if (GetCurrentDirectoryA(MAX_PATH, path) != 0)
         return path;
@@ -590,7 +593,7 @@ inline uintmax_t getDirectorySize(const String& path)
     if (!isExistsDirectory(path))
         throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, path);
 #ifdef BTF_CPP17
-    for (auto& var : fs::recursive_directory_iterator(path))
+    for (const auto& var : fs::recursive_directory_iterator(path))
         result += var.file_size();
 
     return result;
@@ -818,7 +821,7 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
     Strings files;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto& var : fs::recursive_directory_iterator(path)) {
+        for (const auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -836,7 +839,7 @@ std::pair<Strings, Strings> getAlls(const String& path, Strings* errorPaths = nu
                 continue;
         }
     } else {
-        for (auto& var : fs::directory_iterator(path)) {
+        for (const auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -877,7 +880,7 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
     Strings files;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto& var : fs::recursive_directory_iterator(path)) {
+        for (const auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -891,7 +894,7 @@ Strings getAllFiles(const String& path, Strings* errorPaths = nullptr,
                 files.push_back(name);
         }
     } else {
-        for (auto& var : fs::directory_iterator(path)) {
+        for (const auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -928,7 +931,7 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
     Strings dirs;
 #ifdef BTF_CPP17
     if (isRecursive) {
-        for (auto& var : fs::recursive_directory_iterator(path)) {
+        for (const auto& var : fs::recursive_directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -942,7 +945,7 @@ Strings getAllDirectorys(const String& path, Strings* errorPaths = nullptr,
                 dirs.push_back(name);
         }
     } else {
-        for (auto& var : fs::directory_iterator(path)) {
+        for (const auto& var : fs::directory_iterator(path)) {
             String name;
             try {
                 name = var.path().string();
@@ -1130,6 +1133,7 @@ inline uintmax_t getHardlinkCount(const String& path)
 
 namespace btf
 {
+
 // classes.
 
 class File
@@ -1278,7 +1282,7 @@ public:
         data_ = new String;
         data_->reserve(data_->size() + data.size());
 
-        for (auto& var : data)
+        for (const auto& var : data)
             data_->push_back(var);
 
         return *this;
@@ -1330,7 +1334,7 @@ public:
             data_ = new String;
         data_->reserve(data_->size() + size);
 
-        for (auto& var : data)
+        for (const auto& var : data)
             data_->push_back(var);
 
         return *this;
@@ -1397,11 +1401,11 @@ public:
         Dir root(getPathSuffix(dirpath));
 
         auto dirs = getAllDirectorys<false>(dirpath);
-        for (auto& var : dirs)
+        for (const auto& var : dirs)
             root << Dir::fromPath(var);
 
         auto files = getAllFiles<false>(dirpath);
-        for (auto& var : files)
+        for (const auto& var : files)
             root << File::fromPath(var);
 
         return root;
@@ -1417,12 +1421,12 @@ public:
         size_t size = 0;
 
         if (subFiles_) {
-            for (auto& var : *subFiles_)
+            for (const auto& var : *subFiles_)
                 size += var.size();
         }
 
         if (subDirs_) {
-            for (auto& var : *subDirs_)
+            for (const auto& var : *subDirs_)
                 size += var.size();
         }
 
@@ -1437,7 +1441,7 @@ public:
             cnt += subFiles_->size();
 
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_)
+            for (const auto& var : *subDirs_)
                 cnt += var.fileCount();
         }
 
@@ -1452,7 +1456,7 @@ public:
             cnt += subDirs_->size();
 
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_)
+            for (const auto& var : *subDirs_)
                 cnt += var.dirCount();
         }
 
@@ -1476,7 +1480,7 @@ public:
             return true;
 
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (const auto& var : *subDirs_) {
                 if (var.hasFile(name, true))
                     return true;
             }
@@ -1491,7 +1495,7 @@ public:
             return true;
 
         if (isRecursive && subDirs_) {
-            for (auto& var : *subDirs_) {
+            for (const auto& var : *subDirs_) {
                 if (var.hasDir(name, true))
                     return true;
             }
@@ -1657,12 +1661,12 @@ public:
         createDirectory(root);
 
         if (subFiles_) {
-            for (auto& var : *subFiles_)
+            for (const auto& var : *subFiles_)
                 var.write(root, wp, openmode);
         }
 
         if (subDirs_) {
-            for (auto& var : *subDirs_)
+            for (const auto& var : *subDirs_)
                 var.write(root, wp);
         }
     }
@@ -1725,7 +1729,7 @@ private:
     size_t hasFile_(const String& name) const
     {
         if (subFiles_) {
-            for (size_t i = 0; i < subFiles_->size(); ++i) {
+            for (size_t i = 0; i < subFiles_->size(); i++) {
                 if ((*subFiles_)[i].name() == name)
                     return i + 1;
             }
@@ -1737,7 +1741,7 @@ private:
     size_t hasDir_(const String& name) const
     {
         if (subDirs_) {
-            for (size_t i = 0; i < subDirs_->size(); ++i) {
+            for (size_t i = 0; i < subDirs_->size(); i++) {
                 if ((*subDirs_)[i].name() == name)
                     return i + 1;
             }
