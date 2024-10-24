@@ -113,8 +113,8 @@ namespace btf
 namespace btf
 {
 
-typedef unsigned char uchar;
-typedef unsigned int uint;
+using uchar = unsigned char;
+using uint = unsigned int;
 
 template<typename T>
 using Vec = std::vector<T>;
