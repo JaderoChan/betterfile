@@ -66,8 +66,8 @@
 #endif // BTF_CPPVERS >= 201703L
 
 // The path separator on different platforms.
-#define BTF_PATH_SEPARATOR_WIN          '\\'
-#define BTF_PATH_SEPARATOR_LINUX        '/'
+#define BTF_PATH_SEPARATOR_WIN      '\\'
+#define BTF_PATH_SEPARATOR_LINUX    '/'
 
 // Preferred path separator.
 #ifdef _WIN32
@@ -87,7 +87,7 @@
 #endif // BTF_IMPL
 
 // Error messages.
-#ifndef BTF_ERR_INFO    // Just for the code block can be foldable.
+#ifndef BTF_ERR_INFO    // Just for the code block can be fold.
 #define BTF_ERR_INFO
 #define BTF_ERR_UNDEFINED             "The undefined error."
 #define BTF_ERR_FAILED_OSAPI          "Failed to process in OS API."
@@ -99,13 +99,13 @@
 #endif // !BTF_ERR_INFO
 
 #define BTF_ERROR_HINT          "[BetterFile Fatal Error] "
-#define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERROR_HINT) + et + " " + added)
+#define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERROR_HINT) + et + ' ' + added)
 
 // Betterfile namespace.
 namespace btf
 {
 
-    // Just for the "namespace tooltip" not show "Type alias" and so on.
+// Just for the "namespace tooltip" not show "Type alias" and so on.
 
 }
 
@@ -124,19 +124,19 @@ using Strings = Vec<String>;
 
 }
 
-// Constants.
+// Enum and constants.
 namespace btf
 {
-
-constexpr uint BUFFER_SIZE = 4096;
 
 enum WritePolicy : uchar
 {
     // Skip write process when the file exists.
-    SKIP = 1,
+    SKIP,
     // Override the old file.
     OVERRIDE
 };
+
+constexpr uint BUFFER_SIZE = 4096;
 
 }
 
