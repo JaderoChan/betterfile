@@ -40,11 +40,9 @@
 // #include <betterfile.hpp>
 //
 
-// Prevents multiple inclusion.
 #ifndef BETTERFILE_HPP
 #define BETTERFILE_HPP
 
-// Includes.
 #include <cstdint>  // uintmax_t
 #include <cstddef>  // size_t
 #include <string>
@@ -87,7 +85,7 @@
 #endif // BTF_IMPL
 
 // Error messages.
-#ifndef BTF_ERR_INFO    // Just for the code block can be fold.
+#ifndef BTF_ERR_INFO    // Just for the code block can be collapsed.
 #define BTF_ERR_INFO
 #define BTF_ERR_UNDEFINED             "The undefined error."
 #define BTF_ERR_FAILED_OSAPI          "Failed to process in OS API."
@@ -98,8 +96,8 @@
 #define BTF_ERR_CP                    "The unsupported character set."
 #endif // !BTF_ERR_INFO
 
-#define BTF_ERROR_HINT          "[BetterFile Fatal Error] "
-#define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERROR_HINT) + et + ' ' + added)
+#define BTF_ERR_HINT          "[BetterFile Error] "
+#define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERR_HINT) + et + ' ' + added)
 
 // Betterfile namespace.
 namespace btf
