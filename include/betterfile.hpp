@@ -103,7 +103,7 @@
 namespace btf
 {
 
-// Just for the "namespace tooltip" not show "Type alias" and so on.
+// Just for the intellisense better show "tip about namespace". :)
 
 }
 
@@ -137,7 +137,6 @@ enum WritePolicy : uchar
 constexpr uint BUFFER_SIZE = 4096;
 
 }
-
 
 #ifdef BTF_CPP17
 #ifndef BTF_FWD
@@ -257,7 +256,6 @@ BTF_API HANDLE getFileHandle(const String& path)
 }
 
 #endif // BTF_CPP17
-
 
 // Utility functions declaration.
 namespace btf
