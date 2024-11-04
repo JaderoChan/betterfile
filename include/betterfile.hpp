@@ -52,22 +52,15 @@
 
 // Compiler version.
 #ifdef _MSVC_LANG
-#define _BTF_CPPVERS     _MSVC_LANG
+#define _BETTERFILE_CPPVERS     _MSVC_LANG
 #else
-#define _BTF_CPPVERS     __cplusplus
+#define _BETTERFILE_CPPVERS     __cplusplus
 #endif // _MSVC_LANG
 
 // Check C++17 support.
-#if _BTF_CPPVERS >= 201703L
-#define BTF_CPP17
-#endif // BTF_CPPVERS >= 201703L
-
-// Set the preferred path separator.
-#ifdef _WIN32
-#define BTF_PATH_SEPARATOR      '\\'
-#else
-#define BTF_PATH_SEPARATOR      '/'
-#endif // _WIN32
+#if _BETTERFILE_CPPVERS >= 201703L
+#define _BETTERFILE_CPP17
+#endif // BETTERFILE_CPPVERS >= 201703L
 
 #ifdef BTF_IMPL
 #define BTF_API 
@@ -104,12 +97,17 @@ enum WritePolicy : uchar
     // Skip write process when the destination file exists.
     SKIP,
     // Override the destination file.
-    OVERRIDE,
-    //// Override the destination file when the destination file older than source file.
-    //UPDATE
+    OVERRIDE
 };
 
 constexpr uint _BUFFER_SIZE = 4096;
+
+// Set the preferred path separator.
+#ifdef _WIN32
+constexpr char PATH_SEPARATOR = '\\';
+#else
+constexpr char PATH_SEPARATOR = '/';
+#endif // _WIN32
 
 }
 
@@ -119,7 +117,7 @@ namespace btf
 
 inline String pathcat(const String& path1, const String& path2)
 {
-    return path1 + BTF_PATH_SEPARATOR + path2;
+    return path1 + PATH_SEPARATOR + path2;
 }
 
 template<typename... Args>
@@ -133,7 +131,7 @@ String pathcat(const String& path1, const String& path2, const Args&&... paths)
 
 }
 
-#ifdef BTF_CPP17
+#ifdef _BETTERFILE_CPP17
 #ifndef BTF_FWD
 #include <filesystem>
 namespace btf
@@ -153,13 +151,13 @@ namespace fs = ghc::filesystem;
 
 }
 #endif // !BTF_FWD
-#endif // BTF_CPP17
+#endif // _BETTERFILE_CPP17
 
-#ifndef BTF_IMPL
-// Declaration.
-// Utility functions with filesystem.
+// Declaration of utility functions with filesystem.
 namespace btf
 {
+
+#ifndef BTF_IMPL
 
 BTF_API String normalize(const String& path);
 
@@ -223,20 +221,21 @@ BTF_API Strings getAllFiles(const String& path, bool isRecursive = true,
 BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true,
                                  bool (*filter) (const String&) = nullptr);
 
-}
 #endif // !BTF_IMPL
 
-#ifndef BTF_FWD
-// Implementation.
-// Utility functions with filesystem.
+}
+
+// Implementation of utility functions with filesystem.
 namespace btf
 {
+
+#ifndef BTF_FWD
 
 using _pth = fs::path;
 
 BTF_API String normalize(const String& path)
 {
-    return fs::canonical(path).string();
+    return _pth(path).lexically_normal().string();
 }
 
 BTF_API String currentPath()
@@ -311,7 +310,7 @@ BTF_API size_t size(const String& path)
 
         return rslt;
     } else {
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path not exists.");
     }
 }
 
@@ -389,7 +388,7 @@ BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp)
     else if (isDirectory(src))
         fs::create_directory_symlink(src, dst);
     else
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path not exists.");
 }
 
 BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp)
@@ -403,18 +402,17 @@ BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp
 BTF_API void
 createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, WritePolicy wp)
 {
-    if (isExists(dst) && wp == SKIP)
-        return;
-
     if (!isDirectory(src))
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path is not directory or not exists");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists");
 
     createDirectorys(dst);
 
     if (isRecursive) {
         for (const auto& var : fs::recursive_directory_iterator(src)) {
             if (var.is_regular_file())
-                createHardlink(var.path().string(), pathcat(dst, String(var.path().string()).substr(src.size())));
+                createHardlink(var.path().string(),
+                               pathcat(dst, String(var.path().string()).substr(src.size())),
+                               wp);
 
             if (var.is_directory())
                 createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
@@ -422,7 +420,9 @@ createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, 
     } else {
         for (const auto& var : fs::directory_iterator(src)) {
             if (var.is_regular_file())
-                createHardlink(var.path().string(), pathcat(dst, String(var.path().string()).substr(src.size())));
+                createHardlink(var.path().string(),
+                               pathcat(dst, String(var.path().string()).substr(src.size())),
+                               wp);
 
             if (var.is_directory())
                 createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
@@ -444,7 +444,7 @@ BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path is not directory or not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
 
     Strings files;
     Strings dirs;
@@ -470,13 +470,15 @@ getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
                 dirs.push_back(path);
         }
     }
+
+    return {files, dirs};
 }
 
 BTF_API Strings
 getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path is not directory or not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
 
     Strings files;
 
@@ -495,40 +497,46 @@ getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&)
                 files.push_back(path);
         }
     }
+
+    return files;
 }
 
 BTF_API Strings
 getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error("#" __FUNCTION__ "() The specify path is not directory or not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
 
-    Strings files;
+    Strings dirs;
 
     if (isRecursive) {
         for (const auto& var : fs::recursive_directory_iterator(path)) {
             String path = var.path().string();
 
             if (var.is_directory() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+                dirs.push_back(path);
         }
     } else {
         for (const auto& var : fs::directory_iterator(path)) {
             String path = var.path().string();
 
             if (var.is_directory() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+                dirs.push_back(path);
         }
     }
+
+    return dirs;
 }
 
-}
 #endif // !BTF_FWD
 
-#ifndef BTF_IMPL
+}
+
 // Classes.
 namespace btf
 {
+
+#ifndef BTF_IMPL
 
 class File
 {
@@ -632,7 +640,7 @@ public:
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
-        String _path = path + BTF_PATH_SEPARATOR + name_;
+        String _path = path + PATH_SEPARATOR + name_;
 
         if (isFile(_path) && wp == SKIP)
             return;
@@ -1016,7 +1024,7 @@ public:
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
-        String root = String(path) + BTF_PATH_SEPARATOR + name_;
+        String root = String(path) + PATH_SEPARATOR + name_;
 
         createDirectory(root);
 
@@ -1105,7 +1113,8 @@ private:
     Vec<Dir>* subDirs_ = nullptr;
 };
 
-}
 #endif // !BTF_IMPL
+
+}
 
 #endif // !BETTERFILE_HPP
