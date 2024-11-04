@@ -53,13 +53,13 @@
 
 // Compiler version.
 #ifdef _MSVC_LANG
-#define BTF_CPPVERS     _MSVC_LANG
+#define _BTF_CPPVERS     _MSVC_LANG
 #else
-#define BTF_CPPVERS     __cplusplus
+#define _BTF_CPPVERS     __cplusplus
 #endif // _MSVC_LANG
 
 // Check C++17 support.
-#if BTF_CPPVERS >= 201703L
+#if _BTF_CPPVERS >= 201703L
 #define BTF_CPP17
 #endif // BTF_CPPVERS >= 201703L
 
@@ -96,7 +96,7 @@
 #define BTF_ERR_CP                    "The unsupported character set."
 #endif // !BTF_ERR_INFO
 
-#define BTF_ERR_HINT          "[BetterFile Error] "
+#define BTF_ERR_HINT            "[BetterFile Error] "
 #define BTF_MKERR(et,added)     std::runtime_error(std::string(BTF_ERR_HINT) + et + ' ' + added)
 
 // Betterfile namespace.
@@ -283,11 +283,11 @@ BTF_API String& normalizePath(String& path, bool removeDQuot = true);
 
 // @brief Get the normal path which discard the filename and extension.
 // @example "C:/path_to/file.ext" => "C:\path_to"
-BTF_API String getPathPrefix(const String& path);
+BTF_API String getParentPath(const String& path);
 
 // @brief Get the normal path which just reserve the filename and extension.
 // @example "C:/path_to/file.ext" => "file.ext"
-BTF_API String getPathSuffix(const String& path);
+BTF_API String getFileNameEx(const String& path);
 
 // @brief Get the file's name, and not include extension.
 // @example "C:/path_to/file.ext" => "file"
@@ -543,7 +543,7 @@ BTF_API String& normalizePath(String& path, bool removeDQuot)
     return path;
 }
 
-BTF_API String getPathPrefix(const String& path)
+BTF_API String getParentPath(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).parent_path().string();
@@ -572,7 +572,7 @@ BTF_API String getPathPrefix(const String& path)
 #endif // BTF_CPP17
 }
 
-BTF_API String getPathSuffix(const String& path)
+BTF_API String getFileNameEx(const String& path)
 {
 #ifdef BTF_CPP17
     return fs::path(path).filename().string();
@@ -603,7 +603,7 @@ BTF_API String getFileName(const String& path)
 #ifdef BTF_CPP17
     return fs::path(path).filename().replace_extension().string();
 #else
-    String _path = getPathSuffix(path);
+    String _path = getFileNameEx(path);
 
     size_t pos = _path.rfind('.');
 
@@ -619,7 +619,7 @@ BTF_API String getFileExtension(const String& path)
 #ifdef BTF_CPP17
     return fs::path(path).filename().extension().string();
 #else
-    String _path = getPathSuffix(path);
+    String _path = getFileNameEx(path);
 
     size_t pos = _path.rfind('.');
 
@@ -635,7 +635,7 @@ BTF_API String getParentName(const String& path)
 #ifdef BTF_CPP17
     return fs::path(path).parent_path().filename().string();
 #else
-    return getPathSuffix(getPathPrefix(path));
+    return getFileNameEx(getParentPath(path));
 #endif // BTF_CPP17
 }
 
@@ -646,7 +646,7 @@ BTF_API String pathcat(const String& path1, const String& path2)
 
 BTF_API String changeFileName(const String& path, const String& newname)
 {
-    String prefix = getPathPrefix(path);
+    String prefix = getParentPath(path);
     if(normalizePathC(path) == prefix)
         return path;
     return pathcat(prefix, newname + getFileExtension(path));
@@ -897,7 +897,7 @@ BTF_API uintmax_t deletes(const String& path)
 
 BTF_API bool rename(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     if (!isExists(src) || src == _dst)
         return false;
@@ -930,7 +930,7 @@ BTF_API bool rename(const String& src, const String& dst, WritePolicy wp, bool d
 
 BTF_API bool copyFile(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     if (!isExistsFile(src) || src == _dst)
         return false;
@@ -953,7 +953,7 @@ BTF_API bool copyFile(const String& src, const String& dst, WritePolicy wp, bool
 
 BTF_API bool copyDirectory(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     if (!isExistsDirectory(src) || src == dst)
         return false;
@@ -1144,7 +1144,7 @@ BTF_API Strings getAllDirectorys(const String& path, bool isRecursive,
 
 BTF_API bool createFileSymlink(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     if (!isExistsFile(src) || src == _dst)
         return false;
@@ -1175,7 +1175,7 @@ BTF_API bool createFileSymlink(const String& src, const String& dst, WritePolicy
 
 BTF_API bool createDirectorySymlink(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     if (!isExistsDirectory(src) || src == _dst)
         return false;
@@ -1217,7 +1217,7 @@ BTF_API bool createSymlink(const String& src, const String& dst, WritePolicy wp,
 BTF_API bool createHardlink(const String& src, const String& dst, WritePolicy wp, bool dstIsEnd)
 {
 // Get the finally path of to.
-    String _dst = dstIsEnd ? dst : pathcat(dst, getPathSuffix(src));
+    String _dst = dstIsEnd ? dst : pathcat(dst, getFileNameEx(src));
 
     // If the src path not exists return false, do nothing.
     if (!isExistsFile(src) || src == _dst)
@@ -1316,7 +1316,7 @@ public:
         if (!ifs.is_open())
             throw BTF_MKERR(BTF_ERR_FILE_OPEN_FAILED, filename);
 
-        File file(getPathSuffix(filename));
+        File file(getFileNameEx(filename));
         file << ifs;
 
         ifs.close();
@@ -1480,7 +1480,6 @@ public:
     const File& operator>>(std::ostream& os) const
     {
         write(os);
-
         return *this;
     }
 
@@ -1535,7 +1534,7 @@ public:
         if (!isExistsDirectory(dirpath))
             throw BTF_MKERR(BTF_ERR_UNEXISTS_PATH, dirpath);
 
-        Dir root(getPathSuffix(dirpath));
+        Dir root(getFileNameEx(dirpath));
 
         auto dirs = getAllDirectorys(dirpath, false);
         for (const auto& var : dirs)
@@ -1641,30 +1640,15 @@ public:
         return false;
     }
 
-    void setName(const String& name)
-    {
-        name_ = name;
-    }
+    void setName(const String& name) { name_ = name; }
 
-    const Vec<File>& files() const
-    {
-        return *subFiles_;
-    }
+    const Vec<File>& files() const { return *subFiles_; }
 
-    const Vec<Dir>& dirs() const
-    {
-        return *subDirs_;
-    }
+    const Vec<Dir>& dirs() const { return *subDirs_; }
 
-    Vec<File>& files()
-    {
-        return *subFiles_;
-    }
+    Vec<File>& files() { return *subFiles_; }
 
-    Vec<Dir>& dirs()
-    {
-        return *subDirs_;
-    }
+    Vec<Dir>& dirs() { return *subDirs_; }
 
     File& file(const String& name)
     {
@@ -1710,15 +1694,9 @@ public:
         subDirs_->erase(subDirs_->begin() + pos - 1);
     }
 
-    void remove(const File& file)
-    {
-        removeFile(file.name());
-    }
+    void remove(const File& file) { removeFile(file.name()); }
 
-    void remove(const Dir& dir)
-    {
-        removeDir(dir.name());
-    }
+    void remove(const Dir& dir) { removeDir(dir.name()); }
 
     void clearFiles()
     {
@@ -1770,25 +1748,13 @@ public:
         subDirs_->emplace_back(std::move(dir));
     }
 
-    void add(File&& file)
-    {
-        add(file);
-    }
+    void add(File&& file) { add(file); }
 
-    void add(Dir&& dir)
-    {
-        add(dir);
-    }
+    void add(Dir&& dir) { add(dir); }
 
-    void addFile(const String& name)
-    {
-        add(File(name));
-    }
+    void addFile(const String& name) { add(File(name)); }
 
-    void addDir(const String& name)
-    {
-        add(Dir(name));
-    }
+    void addDir(const String& name) { add(Dir(name)); }
 
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
@@ -1824,41 +1790,31 @@ public:
         return *this;
     }
 
-    Dir& operator[](const String& name)
-    {
-        return dir(name);
-    }
+    Dir& operator[](const String& name) { return dir(name); }
 
-    File& operator()(const String& name)
-    {
-        return file(name);
-    }
+    File& operator()(const String& name) { return file(name); }
 
     Dir& operator<<(File& file)
     {
         add(file);
-
         return *this;
     }
 
     Dir& operator<<(Dir& dir)
     {
         add(dir);
-
         return *this;
     }
 
     Dir& operator<<(File&& file)
     {
         add(file);
-
         return *this;
     }
 
     Dir& operator<<(Dir&& dir)
     {
         add(dir);
-
         return *this;
     }
 
