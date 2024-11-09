@@ -258,11 +258,6 @@ BTF_API Strings getAllFiles(const String& path, bool isRecursive = true,
 BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true,
                                  bool (*filter) (const String&) = nullptr);
 
-BTF_API void permission(const String& path)
-{
-    fs::permissions(path, fs::perms::all);
-}
-
 #endif // !BTF_IMPL
 
 }
@@ -372,7 +367,8 @@ BTF_API size_t sizes(const String& path)
 
         return rslt;
     } else {
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ +
+                                 "() The specify path not exists." + path);
     }
 }
 
@@ -450,7 +446,8 @@ BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp)
     else if (isDirectory(src))
         fs::create_directory_symlink(src, dst);
     else
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ +
+                                 "() The specify path not exists." + src);
 }
 
 BTF_API String symlinkTarget(const String &path)
@@ -470,7 +467,8 @@ BTF_API void
 createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, WritePolicy wp)
 {
     if (!isDirectory(src))
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists");
+        throw std::runtime_error(String("#") + __FUNCTION__ +
+                                 "() The specify path is not directory or not exists" + src);
 
     createDirectorys(dst);
 
@@ -478,8 +476,7 @@ createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, 
         for (const auto& var : fs::recursive_directory_iterator(src)) {
             if (var.is_regular_file())
                 createHardlink(var.path().string(),
-                               pathcat(dst, String(var.path().string()).substr(src.size())),
-                               wp);
+                               pathcat(dst, String(var.path().string()).substr(src.size())), wp);
 
             if (var.is_directory())
                 createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
@@ -488,8 +485,7 @@ createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, 
         for (const auto& var : fs::directory_iterator(src)) {
             if (var.is_regular_file())
                 createHardlink(var.path().string(),
-                               pathcat(dst, String(var.path().string()).substr(src.size())),
-                               wp);
+                               pathcat(dst, String(var.path().string()).substr(src.size())), wp);
 
             if (var.is_directory())
                 createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
@@ -511,7 +507,8 @@ BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
+                throw std::runtime_error(String("#") + __FUNCTION__ +
+                                         "() The specify path is not directory or not exists: " + path);
 
     Strings files;
     Strings dirs;
@@ -545,7 +542,8 @@ BTF_API Strings
 getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
+        throw std::runtime_error(String("#") + __FUNCTION__ +
+                                 "() The specify path is not directory or not exists: " + path);
 
     Strings files;
 
@@ -572,7 +570,8 @@ BTF_API Strings
 getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path is not directory or not exists.");
+                throw std::runtime_error(String("#") + __FUNCTION__ +
+                                         "() The specify path is not directory or not exists: " + path);
 
     Strings dirs;
 
