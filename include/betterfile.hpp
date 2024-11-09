@@ -102,14 +102,17 @@ enum WritePolicy : uchar
 
 constexpr uint _BUFFER_SIZE = 4096;
 
-// Set the preferred path separator.
-constexpr char _PATH_SEPARATOR_WIN = '\\';
-constexpr char _PATH_SEPARATOR_LINUX = '/';
+// Preferred path separator.
+constexpr char WIN_PATH_SEPARATOR = '\\';
+constexpr char LINUX_PATH_SEPARATOR = '/';
 #ifdef _WIN32
-constexpr char PATH_SEPARATOR = _PATH_SEPARATOR_WIN;
+constexpr char PREFERRED_PATH_SEPARATOR = WIN_PATH_SEPARATOR;
 #else
-constexpr char PATH_SEPARATOR = _PATH_SEPARATOR_LINUX;
+constexpr char PREFERRED_PATH_SEPARATOR = LINUX_PATH_SEPARATOR;
 #endif // _WIN32
+
+// The invalid characters in filename.
+constexpr const char* FILENAME_INVALID_CHARS = "\\/:*?\"<>|";
 
 }
 
@@ -117,11 +120,13 @@ constexpr char PATH_SEPARATOR = _PATH_SEPARATOR_LINUX;
 namespace btf
 {
 
+// @brief Concatenate two paths.
 inline String pathcat(const String& path1, const String& path2)
 {
-    return path1 + PATH_SEPARATOR + path2;
+    return path1 + PREFERRED_PATH_SEPARATOR + path2;
 }
 
+// @brief Concatenate multiple paths.
 template<typename... Args>
 String pathcat(const String& path1, const String& path2, const Args&&... paths)
 {
@@ -131,24 +136,20 @@ String pathcat(const String& path1, const String& path2, const Args&&... paths)
         return pathcat(pathcat(path1, path2), paths...);
 }
 
+// @brief Check if the filename is valid.
 bool isValidFilename(const String& filename)
 {
-    for (const auto& var : filename) {
-        switch (var) {
-            case _PATH_SEPARATOR_WIN:
-            case _PATH_SEPARATOR_LINUX:
-            case ':':
-            case '*':
-            case '?':
-            case '"':
-            case '<':
-            case '>':
-            case '|':
-                return false;
-            default:
-                break;
-        }
-    }
+    // Filename can't be empty.
+    if (filename.empty())
+        return false;
+
+    // Filename can't be "." or "..".
+    if (filename == "." || filename == "..")
+        return false;
+
+    // Filename can't contain invalid characters.
+    if (filename.find_first_of(FILENAME_INVALID_CHARS) != String::npos)
+        return false;
 
     return true;
 }
@@ -197,17 +198,27 @@ BTF_API String filename(const String& path);
 
 BTF_API String extension(const String& path);
 
+BTF_API bool isExists(const String& path);
+
 BTF_API bool isFile(const String& path);
 
 BTF_API bool isDirectory(const String& path);
 
+BTF_API bool isSymlink(const String& path);
+
 BTF_API bool isEmpty(const String& path);
 
-BTF_API bool equivalent(const String& path1, const String& path2);
+BTF_API bool isRelative(const String& path);
+
+BTF_API bool isAbsolute(const String& path);
 
 BTF_API String relative(const String& path, const String& base = currentPath());
 
-BTF_API size_t size(const String& path);
+BTF_API String absolute(const String& path);
+
+BTF_API bool equivalent(const String& path1, const String& path2);
+
+BTF_API size_t sizes(const String& path);
 
 BTF_API bool createDirectory(const String& path);
 
@@ -227,6 +238,8 @@ BTF_API void reExtension(const String& path, const String& newExtension, WritePo
 
 BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp = SKIP);
 
+BTF_API String symlinkTarget(const String& path);
+
 BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp = SKIP);
 
 BTF_API void createHardlinkDirectory(const String& src, const String& dst,
@@ -245,6 +258,11 @@ BTF_API Strings getAllFiles(const String& path, bool isRecursive = true,
 BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true,
                                  bool (*filter) (const String&) = nullptr);
 
+BTF_API void permission(const String& path)
+{
+    fs::permissions(path, fs::perms::all);
+}
+
 #endif // !BTF_IMPL
 
 }
@@ -259,7 +277,7 @@ using _pth = fs::path;
 
 BTF_API String normalize(const String& path)
 {
-    return _pth(path).lexically_normal().string();
+    return _pth(path).lexically_normal().generic_string();
 }
 
 BTF_API String currentPath()
@@ -307,14 +325,24 @@ BTF_API bool isDirectory(const String& path)
     return fs::exists(path) && fs::is_directory(path);
 }
 
+BTF_API bool isSymlink(const String &path)
+{
+    return fs::is_symlink(path);
+}
+
 BTF_API bool isEmpty(const String& path)
 {
     return fs::is_empty(path);
 }
 
-BTF_API bool equivalent(const String& path1, const String& path2)
+BTF_API bool isRelative(const String &path)
 {
-    return fs::equivalent(path1, path2);
+    return _pth(path).is_relative();
+}
+
+BTF_API bool isAbsolute(const String &path)
+{
+    return _pth(path).is_absolute();
 }
 
 BTF_API String relative(const String& path, const String& base)
@@ -322,7 +350,17 @@ BTF_API String relative(const String& path, const String& base)
     return fs::relative(path, base).string();
 }
 
-BTF_API size_t size(const String& path)
+BTF_API String absolute(const String &path)
+{
+    return fs::absolute(path).string();
+}
+
+BTF_API bool equivalent(const String& path1, const String& path2)
+{
+    return fs::equivalent(path1, path2);
+}
+
+BTF_API size_t sizes(const String& path)
 {
     if (isFile(path)) {
         return fs::file_size(path);
@@ -413,6 +451,11 @@ BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp)
         fs::create_directory_symlink(src, dst);
     else
         throw std::runtime_error(String("#") + __FUNCTION__ + "() The specify path not exists.");
+}
+
+BTF_API String symlinkTarget(const String &path)
+{
+    return fs::read_symlink(path).string();
 }
 
 BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp)
@@ -585,7 +628,7 @@ public:
         other.data_ = nullptr;
     }
 
-    ~File() { clear(); }
+    ~File() { releaseData(); }
 
     static File fromDiskPath(const String& filename)
     {
@@ -623,13 +666,12 @@ public:
     void setName(const String& name)
     {
         if (!isValidFilename(name))
-            throw std::runtime_error("Invalid file name (The file name can not contain any of the following characters:\
-                                     \\/:*?\"<>|): " + name);
+            throw std::runtime_error("Invalid file name: " + name);
 
         name_ = name;
     }
 
-    void clear()
+    void releaseData()
     {
         if (data_ == nullptr)
             return;
@@ -649,7 +691,7 @@ public:
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
-        String _path = path + PATH_SEPARATOR + name_;
+        String _path = path + PREFERRED_PATH_SEPARATOR + name_;
 
         if (isFile(_path) && wp == SKIP)
             return;
@@ -670,7 +712,7 @@ public:
     {
         name_ = other.name_;
 
-        clear();
+        releaseData();
 
         if (other.data_)
             data_ = new String(*other.data_);
@@ -680,7 +722,7 @@ public:
 
     File& operator=(const String& data)
     {
-        clear();
+        releaseData();
 
         data_ = new String(data);
 
@@ -690,7 +732,7 @@ public:
     template<typename T>
     File& operator=(const std::vector<T>& data)
     {
-        clear();
+        releaseData();
 
         data_ = new String;
         data_->reserve(data_->size() + data.size());
@@ -785,7 +827,6 @@ public:
     Dir(Dir&& other) noexcept
     {
         name_ = other.name_;
-        other.name_.clear();
 
         subFiles_ = other.subFiles_;
         other.subFiles_ = nullptr;
@@ -794,11 +835,7 @@ public:
         other.subDirs_ = nullptr;
     }
 
-    ~Dir()
-    {
-        clearFiles();
-        clearDirs();
-    }
+    ~Dir() { clear(); }
 
     static Dir fromDiskPath(const String& dirpath)
     {
@@ -839,10 +876,9 @@ public:
         if (subFiles_)
             cnt += subFiles_->size();
 
-        if (isRecursive && subDirs_) {
+        if (isRecursive && subDirs_)
             for (const auto& var : *subDirs_)
                 cnt += var.fileCount();
-        }
 
         return cnt;
     }
@@ -854,10 +890,9 @@ public:
         if (subDirs_)
             cnt += subDirs_->size();
 
-        if (isRecursive && subDirs_) {
+        if (isRecursive && subDirs_)
             for (const auto& var : *subDirs_)
                 cnt += var.dirCount();
-        }
 
         return cnt;
     }
@@ -868,7 +903,7 @@ public:
 
     bool hasFile(const String& name, bool isRecursive = false) const
     {
-        if (hasFile_(name) != 0)
+        if (hasFile_(name) != NOF_)
             return true;
 
         if (isRecursive && subDirs_) {
@@ -883,7 +918,7 @@ public:
 
     bool hasDir(const String& name, bool isRecursive = false) const
     {
-        if (hasDir_(name) != 0)
+        if (hasDir_(name) != NOF_)
             return true;
 
         if (isRecursive && subDirs_) {
@@ -899,8 +934,7 @@ public:
     void setName(const String& name)
     {
         if (!isValidFilename(name))
-            throw std::runtime_error("Invalid file name (The file name can not contain any of the following characters:\
-                                     \\/:*?\"<>|): " + name);
+            throw std::runtime_error("Invalid file name: " + name);
 
         name_ = name;
     }
@@ -917,49 +951,56 @@ public:
     {
         size_t pos = hasFile_(name);
 
-        if (pos == 0) {
-            addFile(name);
+        if (pos == NOF_) {
+            add(File(name));
             return subFiles_->back();
         }
 
-        return (*subFiles_)[pos - 1];
+        return (*subFiles_)[pos];
     }
 
     Dir& dir(const String& name)
     {
         size_t pos = hasDir_(name);
 
-        if (pos == 0) {
-            addDir(name);
+        if (pos == NOF_) {
+            add(Dir(name));
             return subDirs_->back();
         }
 
-        return (*subDirs_)[pos - 1];
+        return (*subDirs_)[pos];
     }
 
     void removeFile(const String& name)
     {
         size_t pos = hasFile_(name);
 
-        if (pos == 0)
+        if (pos == NOF_)
             return;
 
-        subFiles_->erase(subFiles_->begin() + pos - 1);
+        subFiles_->erase(subFiles_->begin() + pos);
     }
 
     void removeDir(const String& name)
     {
         size_t pos = hasDir_(name);
 
-        if (pos == 0)
+        if (pos == NOF_)
             return;
 
-        subDirs_->erase(subDirs_->begin() + pos - 1);
+        subDirs_->erase(subDirs_->begin() + pos);
     }
 
-    void remove(const File& file) { removeFile(file.name()); }
+    void releaseAllFilesData()
+    {
+        if (subFiles_)
+            for (auto& var : *subFiles_)
+                var.releaseData();
 
-    void remove(const Dir& dir) { removeDir(dir.name()); }
+        if (subDirs_)
+            for (auto& var : *subDirs_)
+                var.releaseAllFilesData();
+    }
 
     void clearFiles()
     {
@@ -977,6 +1018,12 @@ public:
         }
     }
 
+    void clear()
+    {
+        clearFiles();
+        clearDirs();
+    }
+
     void add(File& file, WritePolicy wp = SKIP)
     {
         if (subFiles_ == nullptr)
@@ -984,7 +1031,7 @@ public:
 
         size_t pos = hasFile_(file.name());
 
-        if (pos != 0) {
+        if (pos != NOF_) {
             if (wp == OVERRIDE)
                 (*subFiles_)[pos] = std::move(file);
 
@@ -1001,7 +1048,7 @@ public:
 
         size_t pos = hasDir_(dir.name());
 
-        if (pos != 0) {
+        if (pos != NOF_) {
             if (wp == OVERRIDE)
                 (*subDirs_)[pos] = std::move(dir);
 
@@ -1011,30 +1058,24 @@ public:
         subDirs_->emplace_back(std::move(dir));
     }
 
-    void add(File&& file) { add(file); }
+    void add(File&& file, WritePolicy wp = SKIP) { add(file, wp); }
 
-    void add(Dir&& dir) { add(dir); }
-
-    void addFile(const String& name) { add(File(name)); }
-
-    void addDir(const String& name) { add(Dir(name)); }
+    void add(Dir&& dir, WritePolicy wp = SKIP) { add(dir, wp); }
 
     void write(const String& path, WritePolicy wp = SKIP,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
-        String root = String(path) + PATH_SEPARATOR + name_;
+        String root = String(path) + PREFERRED_PATH_SEPARATOR + name_;
 
         createDirectory(root);
 
-        if (subFiles_) {
+        if (subFiles_)
             for (const auto& var : *subFiles_)
                 var.write(root, wp, openmode);
-        }
 
-        if (subDirs_) {
+        if (subDirs_)
             for (const auto& var : *subDirs_)
                 var.write(root, wp);
-        }
     }
 
     Dir copy() const { return Dir(*this); }
@@ -1042,9 +1083,8 @@ public:
     Dir& operator=(const Dir& other)
     {
         name_ = other.name_;
-
-        clearFiles();
-        clearDirs();
+        
+        clear();
 
         if (other.subFiles_)
             subFiles_ = new Vec<File>(*other.subFiles_);
@@ -1084,16 +1124,18 @@ public:
     }
 
 private:
+    static constexpr size_t NOF_ = size_t(-1);
+
     size_t hasFile_(const String& name) const
     {
         if (subFiles_) {
             for (size_t i = 0; i < subFiles_->size(); ++i) {
                 if ((*subFiles_)[i].name() == name)
-                    return i + 1;
+                    return i;
             }
         }
 
-        return 0;
+        return NOF_;
     }
 
     size_t hasDir_(const String& name) const
@@ -1101,11 +1143,11 @@ private:
         if (subDirs_) {
             for (size_t i = 0; i < subDirs_->size(); ++i) {
                 if ((*subDirs_)[i].name() == name)
-                    return i + 1;
+                    return i;
             }
         }
 
-        return 0;
+        return NOF_;
     }
 
     String name_;
