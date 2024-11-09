@@ -103,10 +103,12 @@ enum WritePolicy : uchar
 constexpr uint _BUFFER_SIZE = 4096;
 
 // Set the preferred path separator.
+constexpr char _PATH_SEPARATOR_WIN = '\\';
+constexpr char _PATH_SEPARATOR_LINUX = '/';
 #ifdef _WIN32
-constexpr char PATH_SEPARATOR = '\\';
+constexpr char PATH_SEPARATOR = _PATH_SEPARATOR_WIN;
 #else
-constexpr char PATH_SEPARATOR = '/';
+constexpr char PATH_SEPARATOR = _PATH_SEPARATOR_LINUX;
 #endif // _WIN32
 
 }
@@ -127,6 +129,28 @@ String pathcat(const String& path1, const String& path2, const Args&&... paths)
         return pathcat(path1, path2);
     else
         return pathcat(pathcat(path1, path2), paths...);
+}
+
+bool isValidFilename(const String& filename)
+{
+    for (const auto& var : filename) {
+        switch (var) {
+            case _PATH_SEPARATOR_WIN:
+            case _PATH_SEPARATOR_LINUX:
+            case ':':
+            case '*':
+            case '?':
+            case '"':
+            case '<':
+            case '>':
+            case '|':
+                return false;
+            default:
+                break;
+        }
+    }
+
+    return true;
 }
 
 }
@@ -543,7 +567,7 @@ class File
 public:
     File() = default;
 
-    explicit File(const String& name) : name_(name) {}
+    explicit File(const String& name) { setName(name); }
 
     File(const File& other)
     {
@@ -561,22 +585,11 @@ public:
         other.data_ = nullptr;
     }
 
-    ~File()
-    {
-        clear();
-    }
+    ~File() { clear(); }
 
-    File copy() const
+    static File fromDiskPath(const String& filename)
     {
-        return File(*this);
-    }
-
-    static File fromPath(const String& filename)
-    {
-        if (!isFile(filename))
-            throw std::runtime_error("Failed to open the file: " + filename);
-
-        std::ifstream ifs(filename.data(), std::ios_base::binary);
+        std::ifstream ifs(filename, std::ios_base::binary);
 
         if (!ifs.is_open())
             throw std::runtime_error("Failed to open the file: " + filename);
@@ -589,10 +602,7 @@ public:
         return file;
     }
 
-    String name() const
-    {
-        return name_;
-    }
+    String name() const { return name_; }
 
     String data() const
     {
@@ -608,15 +618,14 @@ public:
         return data_->size();
     }
 
-    bool empty() const
-    {
-        if (data_ == nullptr)
-            return true;
-        return data_->empty();
-    }
+    bool empty() const { return size() == 0;}
 
     void setName(const String& name)
     {
+        if (!isValidFilename(name))
+            throw std::runtime_error("Invalid file name (The file name can not contain any of the following characters:\
+                                     \\/:*?\"<>|): " + name);
+
         name_ = name;
     }
 
@@ -654,6 +663,8 @@ public:
 
         ofs.close();
     }
+
+    File copy() const { return File(*this); }
 
     File& operator=(const File& other)
     {
@@ -758,7 +769,7 @@ class Dir
 public:
     Dir() = default;
 
-    explicit Dir(const String& name) : name_(name) {}
+    explicit Dir(const String& name) { setName(name); }
 
     Dir(const Dir& other)
     {
@@ -789,47 +800,34 @@ public:
         clearDirs();
     }
 
-    Dir copy() const
+    static Dir fromDiskPath(const String& dirpath)
     {
-        return Dir(*this);
-    }
-
-    static Dir fromPath(const String& dirpath)
-    {
-        if (!isDirectory(dirpath))
-            throw std::runtime_error("No specify directory exists: " + dirpath);
-
         Dir root(filenameEx(dirpath));
 
         auto dirs = getAllDirectorys(dirpath, false);
         for (const auto& var : dirs)
-            root << Dir::fromPath(var);
+            root << Dir::fromDiskPath(var);
 
         auto files = getAllFiles(dirpath, false);
         for (const auto& var : files)
-            root << File::fromPath(var);
+            root << File::fromDiskPath(var);
 
         return root;
     }
 
-    String name() const
-    {
-        return name_;
-    }
+    String name() const { return name_; }
 
     size_t size() const
     {
         size_t size = 0;
 
-        if (subFiles_) {
+        if (subFiles_)
             for (const auto& var : *subFiles_)
                 size += var.size();
-        }
 
-        if (subDirs_) {
+        if (subDirs_)
             for (const auto& var : *subDirs_)
                 size += var.size();
-        }
 
         return size;
     }
@@ -864,16 +862,9 @@ public:
         return cnt;
     }
 
-    size_t count(bool isRecursive = true) const
-    {
-        return fileCount(isRecursive) + dirCount(isRecursive);
-    }
+    size_t count(bool isRecursive = true) const { return fileCount(isRecursive) + dirCount(isRecursive); }
 
-    bool empty() const
-    {
-        return (subFiles_ == nullptr || subFiles_->empty()) &&
-            (subDirs_ == nullptr || subDirs_->empty());
-    }
+    bool empty() const {return size() == 0;}
 
     bool hasFile(const String& name, bool isRecursive = false) const
     {
@@ -905,7 +896,14 @@ public:
         return false;
     }
 
-    void setName(const String& name) { name_ = name; }
+    void setName(const String& name)
+    {
+        if (!isValidFilename(name))
+            throw std::runtime_error("Invalid file name (The file name can not contain any of the following characters:\
+                                     \\/:*?\"<>|): " + name);
+
+        name_ = name;
+    }
 
     const Vec<File>& files() const { return *subFiles_; }
 
@@ -1039,6 +1037,8 @@ public:
         }
     }
 
+    Dir copy() const { return Dir(*this); }
+
     Dir& operator=(const Dir& other)
     {
         name_ = other.name_;
@@ -1087,7 +1087,7 @@ private:
     size_t hasFile_(const String& name) const
     {
         if (subFiles_) {
-            for (size_t i = 0; i < subFiles_->size(); i++) {
+            for (size_t i = 0; i < subFiles_->size(); ++i) {
                 if ((*subFiles_)[i].name() == name)
                     return i + 1;
             }
@@ -1099,7 +1099,7 @@ private:
     size_t hasDir_(const String& name) const
     {
         if (subDirs_) {
-            for (size_t i = 0; i < subDirs_->size(); i++) {
+            for (size_t i = 0; i < subDirs_->size(); ++i) {
                 if ((*subDirs_)[i].name() == name)
                     return i + 1;
             }
