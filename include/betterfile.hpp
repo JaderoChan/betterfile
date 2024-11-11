@@ -47,6 +47,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>  // std::stringstream
 #include <fstream>
 #include <stdexcept>
 
@@ -56,6 +57,10 @@
 #else
 #define _BETTERFILE_CPPVERS     __cplusplus
 #endif // _MSVC_LANG
+
+#if _BETTERFILE_CPPVERS < 201103L
+#error "The betterfile library just useable in c++11 and above."
+#endif // _BETTERFILE_CPPVERS < 201103L
 
 // Check C++17 support.
 #if _BETTERFILE_CPPVERS >= 201703L
@@ -91,14 +96,7 @@ template<typename T>
 using Vec = std::vector<T>;
 using String = std::string;
 using Strings = Vec<String>;
-
-enum WritePolicy : uchar
-{
-    // Skip write process when the destination file exists.
-    SKIP,
-    // Override the destination file.
-    OVERRIDE
-};
+using Exception = std::runtime_error;
 
 constexpr uint _BUFFER_SIZE = 4096;
 
@@ -128,16 +126,16 @@ inline String pathcat(const String& path1, const String& path2)
 
 // @brief Concatenate multiple paths.
 template<typename... Args>
-String pathcat(const String& path1, const String& path2, const Args&&... paths)
+String pathcat(const String& path1, const String& path2, Args&&... paths)
 {
     if (sizeof...(paths) == 0)
         return pathcat(path1, path2);
     else
-        return pathcat(pathcat(path1, path2), paths...);
+        return pathcat(pathcat(path1, path2), std::forward<Args>(paths)...);
 }
 
 // @brief Check if the filename is valid.
-bool isValidFilename(const String& filename)
+inline bool isValidFilename(const String& filename)
 {
     // Filename can't be empty.
     if (filename.empty())
@@ -152,6 +150,95 @@ bool isValidFilename(const String& filename)
         return false;
 
     return true;
+}
+
+inline String quotePath(const String& path)
+{
+    return "\"" + path + "\"";
+}
+
+template<typename T>
+String _fmt(const String& fmt, const T& arg)
+{
+    std::stringstream ss;
+
+    if (fmt.size() < 4) {
+        size_t pos = fmt.find("{}");
+        if (pos == String::npos)
+            return fmt;
+
+        ss << fmt.substr(0, pos);
+        ss << arg;
+
+        return ss.str() + fmt.substr(pos + 2);
+    }
+
+    String window(4, '\0');
+    for (size_t i = 0; i < fmt.size();) {
+        window[0] = fmt[i];
+        window[1] = i < fmt.size() - 1 ? fmt[i + 1] : '\0';
+        window[2] = i < fmt.size() - 2 ? fmt[i + 2] : '\0';
+        window[3] = i < fmt.size() - 3 ? fmt[i + 3] : '\0';
+
+        if (window == "{{}}") {
+            ss << "{}";
+            i += 4;
+            continue;
+        }
+
+        if (window[0] == '{' && window[1] == '}') {
+            ss << arg;
+            return ss.str() + fmt.substr(i + 2);
+        } else {
+            ss << window[0];
+            i += 1;
+            continue;
+        }
+    }
+
+    return ss.str();
+}
+
+template<typename T, typename... Args>
+String _fmt(const String& fmt, const T& arg, Args&&... args)
+{
+    std::stringstream ss;
+
+    if (fmt.size() < 4) {
+        size_t pos = fmt.find("{}");
+        if (pos == String::npos)
+            return fmt;
+
+        ss << fmt.substr(0, pos);
+        ss << arg;
+
+        return ss.str() + fmt.substr(pos + 2);
+    }
+
+    String window(4, '\0');
+    for (size_t i = 0; i < fmt.size();) {
+        window[0] = fmt[i];
+        window[1] = i < fmt.size() - 1 ? fmt[i + 1] : '\0';
+        window[2] = i < fmt.size() - 2 ? fmt[i + 2] : '\0';
+        window[3] = i < fmt.size() - 3 ? fmt[i + 3] : '\0';
+
+        if (window == "{{}}") {
+            ss << "{}";
+            i += 4;
+            continue;
+        }
+
+        if (window[0] == '{' && window[1] == '}') {
+            ss << arg;
+            return ss.str() + _fmt(fmt.substr(i + 2), std::forward<Args>(args)...);
+        } else {
+            ss << window[0];
+            i += 1;
+            continue;
+        }
+    }
+
+    return ss.str();
 }
 
 }
@@ -188,62 +275,88 @@ BTF_API String normalize(const String& path);
 
 BTF_API String currentPath();
 
+// @example "C:/path/to/file.txt" -> "C:/path/to"
 BTF_API String parentPath(const String& path);
 
+// @example "C:/path/to/file.txt" -> "to"
 BTF_API String parentName(const String& path);
 
+// @example "C:/path/to/file.txt" -> "file.txt"
 BTF_API String filenameEx(const String& path);
 
+// @example "C:/path/to/file.txt" -> "file"
 BTF_API String filename(const String& path);
 
+// @example "C:/path/to/file.txt" -> ".txt"
 BTF_API String extension(const String& path);
 
 BTF_API bool isExists(const String& path);
 
+// @return If the path is exists and path target is a regular file return true, else return false.
 BTF_API bool isFile(const String& path);
 
+// @return If the path is exists and path target is a directory return true, else return false.
 BTF_API bool isDirectory(const String& path);
 
+// @return If the path is exists and path target is a symlink return true, else return false.
 BTF_API bool isSymlink(const String& path);
 
+// @return If the path is a empty file or directory return true, else return false.
+// @note If the path is not exists, throw exception.
 BTF_API bool isEmpty(const String& path);
+
+BTF_API bool isSubPath(const String& path, const String& base);
 
 BTF_API bool isRelative(const String& path);
 
 BTF_API bool isAbsolute(const String& path);
 
+// @brief Get the relative path from the base path.
 BTF_API String relative(const String& path, const String& base = currentPath());
 
 BTF_API String absolute(const String& path);
 
-BTF_API bool equivalent(const String& path1, const String& path2);
+BTF_API bool isEqualPath(const String& path1, const String& path2);
 
+// @brief Check if filesystem entity (file, directory, symlink, hardlink) of two paths is equivalent.
+BTF_API bool isEqualFileSystemEntity(const String& path1, const String& path2);
+
+// @return The size of the file or directory.
 BTF_API size_t sizes(const String& path);
 
+// @brief Create a directory.
+// @return If the directory is existed return false.
+// @note The parent directory must exists.
 BTF_API bool createDirectory(const String& path);
 
+// @brief Create a directory tree.
+// @return If the directory is existed return false.
+// @note The parent directory can be not exists (create it automatically).
 BTF_API bool createDirectorys(const String& path);
 
+// @return The number of files and directories deleted.
 BTF_API size_t deletes(const String& path);
 
-BTF_API void copy(const String& src, const String& dst, WritePolicy wp = SKIP);
+BTF_API void copy(const String& src, const String& dst, bool isOverwrite = false);
 
-BTF_API void move(const String& src, const String& dst, WritePolicy wp = SKIP);
+BTF_API void copySymlink(const String& src, const String& dst, bool isOverwrite = false);
 
-BTF_API void reFilename(const String& path, const String& newFilename, WritePolicy wp = SKIP);
+BTF_API void move(const String& src, const String& dst, bool isOverwrite = false);
 
-BTF_API void reFilenameEx(const String& path, const String& newFilenameEx, WritePolicy wp = SKIP);
+BTF_API void reFilename(const String& path, const String& newFilename, bool isOverwrite = false);
 
-BTF_API void reExtension(const String& path, const String& newExtension, WritePolicy wp = SKIP);
+BTF_API void reFilenameEx(const String& path, const String& newFilenameEx, bool isOverwrite = false);
 
-BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp = SKIP);
+BTF_API void reExtension(const String& path, const String& newExtension, bool isOverwrite = false);
+
+BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrite = false);
 
 BTF_API String symlinkTarget(const String& path);
 
-BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp = SKIP);
+BTF_API void createHardlink(const String& src, const String& dst, bool isOverwrite = false);
 
 BTF_API void createHardlinkDirectory(const String& src, const String& dst,
-                                     bool isRecursive = true, WritePolicy wp = SKIP);
+                                     bool isRecursive = true, bool isOverwrite = false);
 
 BTF_API size_t hardlinkCount(const String& path);
 
@@ -320,7 +433,7 @@ BTF_API bool isDirectory(const String& path)
     return fs::exists(path) && fs::is_directory(path);
 }
 
-BTF_API bool isSymlink(const String &path)
+BTF_API bool isSymlink(const String& path)
 {
     return fs::is_symlink(path);
 }
@@ -330,12 +443,20 @@ BTF_API bool isEmpty(const String& path)
     return fs::is_empty(path);
 }
 
-BTF_API bool isRelative(const String &path)
+BTF_API bool isSubPath(const String& path, const String& base)
+{
+    String path_ = normalize(absolute(path));
+    String base_ = normalize(absolute(base));
+
+    return path_.substr(0, base_.size()) == base_;
+}
+
+BTF_API bool isRelative(const String& path)
 {
     return _pth(path).is_relative();
 }
 
-BTF_API bool isAbsolute(const String &path)
+BTF_API bool isAbsolute(const String& path)
 {
     return _pth(path).is_absolute();
 }
@@ -345,12 +466,20 @@ BTF_API String relative(const String& path, const String& base)
     return fs::relative(path, base).string();
 }
 
-BTF_API String absolute(const String &path)
+BTF_API String absolute(const String& path)
 {
     return fs::absolute(path).string();
 }
 
-BTF_API bool equivalent(const String& path1, const String& path2)
+BTF_API bool isEqualPath(const String& path1, const String& path2)
+{
+    String path1_ = normalize(absolute(path1));
+    String path2_ = normalize(absolute(path2));
+
+    return path1_ == path2_;
+}
+
+BTF_API bool isEqualFileSystemEntity(const String& path1, const String& path2)
 {
     return fs::equivalent(path1, path2);
 }
@@ -367,8 +496,7 @@ BTF_API size_t sizes(const String& path)
 
         return rslt;
     } else {
-        throw std::runtime_error(String("#") + __FUNCTION__ +
-                                 "() The specify path not exists." + path);
+        throw Exception(_fmt("The specify path not exists. \"{}\"", path));
     }
 }
 
@@ -382,93 +510,189 @@ BTF_API bool createDirectorys(const String& path)
     return fs::create_directories(path);
 }
 
+// @return If the path not exists, return 0.
+// @note Even if the path not exists not throw exception.
 BTF_API size_t deletes(const String& path)
 {
     return fs::remove_all(path);
 }
 
-BTF_API void copy(const String& src, const String& dst, WritePolicy wp)
+BTF_API void copy(const String& src, const String& dst, bool isOverwrite)
 {
-    bool dstIsFile = isFile(dst);
-    fs::copy_options op;
-
-    switch (wp) {
-        case SKIP:
-            // Fallthrough.
-        default:
-            op = fs::copy_options::skip_existing;
-            if (dstIsFile)
-                op |= fs::copy_options::skip_symlinks;
-            break;
-        case OVERRIDE:
-            op = fs::copy_options::overwrite_existing;
-            if (dstIsFile)
-                op |= fs::copy_options::copy_symlinks;
-            break;
-    }
-
-    fs::copy(src, dst, op);
-}
-
-BTF_API void move(const String& src, const String& dst, WritePolicy wp)
-{
-    if (wp == SKIP && isExists(dst))
+    // If the source path equals the destination path, do nothing.
+    if (isEqualPath(src, dst))
         return;
-    else
-        fs::rename(src, dst);
+
+    if (isFile(src)) {
+        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        if (!isOverwrite && isExists(dst))
+            return;
+
+        // If the destination path has a same name directory (not file), throw exception.
+        if (isDirectory(dst))
+            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+
+        // Create the parent directory of the destination path first if not exists.
+        if (!isDirectory(parentPath(dst)))
+            createDirectorys(parentPath(dst));
+
+        // If the destination path is a file, delete it first.
+        // #deletes can automatically handle the case of not exists deleted file.
+        deletes(dst);
+        fs::copy_file(src, dst);
+    } else if (isDirectory(src)) {
+        // If the destination path has a same name file (not directory), throw exception.
+        if (isFile(dst))
+            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+
+        // If attempt to copy a directory to a subdirectory, throw exception.
+        if (isSubPath(dst, src))
+            throw Exception(_fmt("Can't copy directory to a subdirectory. \"{}\" -> \"{}\"", src, dst));
+
+        // For each file in the source directory, copy it to the destination directory.
+        for (const auto& var : fs::recursive_directory_iterator(src)) {
+            if (var.is_regular_file())
+                copy(var.path().string(), pathcat(dst, var.path().string().substr(src.size())), isOverwrite);
+            else if (var.is_directory())
+                createDirectorys(pathcat(dst, var.path().string().substr(src.size())));
+        }
+    } else {
+        throw Exception(_fmt("The specify source path not exists. \"{}\"", src));
+    }
 }
 
-BTF_API void reFilename(const String& path, const String& newFilename, WritePolicy wp)
+BTF_API void copySymlink(const String& src, const String& dst, bool isOverwrite)
+{
+    if (!isOverwrite && isExists(dst))
+        return;
+
+    deletes(dst);
+    fs::copy_symlink(src, dst);
+}
+
+BTF_API void move(const String& src, const String& dst, bool isOverwrite)
+{
+    // If the source path equals the destination path, do nothing.
+    if (isEqualPath(src, dst))
+        return;
+
+    if (isFile(src)) {
+        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        if (!isOverwrite && isExists(dst))
+            return;
+
+        // If the destination path has a same name directory (not file), throw exception.
+        if (isDirectory(dst))
+            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+
+        // Create the parent directory of the destination path first if not exists.
+        if (!isDirectory(parentPath(dst)))
+            createDirectorys(parentPath(dst));
+
+        fs::rename(src, dst);
+    } else if (isDirectory(src)) {
+        // If the destination path has a same name file (not directory), throw exception.
+        if (isFile(dst))
+            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+
+        // If attempt to move a directory to a subdirectory, throw exception.
+        if (isSubPath(dst, src))
+            throw Exception(_fmt("Can't move directory to a subdirectory. \"{}\" -> \"{}\"", src, dst));
+
+        createDirectorys(dst);
+
+        for (const auto& var : fs::directory_iterator(src)) {
+            if (var.is_regular_file()) {
+                move(var.path().string(), pathcat(dst, var.path().string().substr(src.size())), isOverwrite);
+            } else if (var.is_directory()) {
+                move(var.path().string(), pathcat(dst, var.path().string().substr(src.size())), isOverwrite);
+                if (fs::is_empty(var.path()))
+                    fs::remove(var.path());
+            }
+        }
+
+        if (fs::is_empty(src))
+            fs::remove(src);
+    } else {
+        throw Exception(_fmt("The specify source path not exists. \"{}\"", src));
+    }
+}
+
+BTF_API void reFilename(const String& path, const String& newFilename, bool isOverwrite)
 {
     auto dst = pathcat(parentPath(path), newFilename + extension(path));
-    move(path, dst, wp);
+    move(path, dst, isOverwrite);
 }
 
-BTF_API void reFilenameEx(const String& path, const String& newFilenameEx, WritePolicy wp)
+BTF_API void reFilenameEx(const String& path, const String& newFilenameEx, bool isOverwrite)
 {
     auto dst = pathcat(parentPath(path), newFilenameEx);
-    move(path, dst, wp);
+    move(path, dst, isOverwrite);
 }
 
-BTF_API void reExtension(const String& path, const String& newExtension, WritePolicy wp)
+BTF_API void reExtension(const String& path, const String& newExtension, bool isOverwrite)
 {
     auto dst = pathcat(parentPath(path), filename(path) + newExtension);
-    move(path, dst, wp);
+    move(path, dst, isOverwrite);
 }
 
-BTF_API void createSymlink(const String& src, const String& dst, WritePolicy wp)
+BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrite)
 {
-    if (isExists(dst) && wp == SKIP)
+    // If the source path equals the destination path, do nothing.
+    if (isEqualPath(src, dst))
         return;
 
-    if (isFile(src))
-        fs::create_symlink(src, dst);
-    else if (isDirectory(src))
-        fs::create_directory_symlink(src, dst);
-    else
-        throw std::runtime_error(String("#") + __FUNCTION__ +
-                                 "() The specify path not exists." + src);
+    // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+    if (!isOverwrite && isExists(dst))
+        return;
+
+    if (isFile(src)) {
+        // If the destination path has a same name directory (not file), throw exception.
+        if (isDirectory(dst))
+            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+    } else if (isDirectory(src)) {
+        // If the destination path has a same name file (not directory), throw exception.
+        if (isFile(dst))
+            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+    } else {
+        throw Exception(_fmt("The specify path not exists. \"{}\"", src));
+    }
+
+    // Create the parent directory of the destination path first if not exists.
+    if (!isDirectory(parentPath(dst)))
+        createDirectorys(parentPath(dst));
+
+    deletes(dst);
+    fs::create_symlink(src, dst);
 }
 
-BTF_API String symlinkTarget(const String &path)
+BTF_API String symlinkTarget(const String& path)
 {
     return fs::read_symlink(path).string();
 }
 
-BTF_API void createHardlink(const String& src, const String& dst, WritePolicy wp)
+BTF_API void createHardlink(const String& src, const String& dst, bool isOverwrite)
 {
-    if (isExists(dst) && wp == SKIP)
+    // If the source path equals the destination path, do nothing.
+    if (isEqualPath(src, dst))
         return;
 
+    if (!isOverwrite && isExists(dst))
+        return;
+
+    // Create the parent directory of the destination path first if not exists.
+    if (!isDirectory(parentPath(dst)))
+        createDirectorys(parentPath(dst));
+
+    deletes(dst);
     fs::create_hard_link(src, dst);
 }
 
 BTF_API void
-createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, WritePolicy wp)
+createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, bool isOverwrite)
 {
     if (!isDirectory(src))
-        throw std::runtime_error(String("#") + __FUNCTION__ +
-                                 "() The specify path is not directory or not exists" + src);
+        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", src));
 
     createDirectorys(dst);
 
@@ -476,19 +700,13 @@ createHardlinkDirectory(const String& src, const String& dst, bool isRecursive, 
         for (const auto& var : fs::recursive_directory_iterator(src)) {
             if (var.is_regular_file())
                 createHardlink(var.path().string(),
-                               pathcat(dst, String(var.path().string()).substr(src.size())), wp);
-
-            if (var.is_directory())
-                createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
+                               pathcat(dst, String(var.path().string()).substr(src.size())), isOverwrite);
         }
     } else {
         for (const auto& var : fs::directory_iterator(src)) {
             if (var.is_regular_file())
                 createHardlink(var.path().string(),
-                               pathcat(dst, String(var.path().string()).substr(src.size())), wp);
-
-            if (var.is_directory())
-                createDirectory(pathcat(dst, String(var.path().string()).substr(src.size())));
+                               pathcat(dst, String(var.path().string()).substr(src.size())), isOverwrite);
         }
     }
 }
@@ -507,8 +725,7 @@ BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-                throw std::runtime_error(String("#") + __FUNCTION__ +
-                                         "() The specify path is not directory or not exists: " + path);
+        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
 
     Strings files;
     Strings dirs;
@@ -535,15 +752,14 @@ getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
         }
     }
 
-    return {files, dirs};
+    return { files, dirs };
 }
 
 BTF_API Strings
 getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-        throw std::runtime_error(String("#") + __FUNCTION__ +
-                                 "() The specify path is not directory or not exists: " + path);
+        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
 
     Strings files;
 
@@ -570,8 +786,7 @@ BTF_API Strings
 getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
     if (!isDirectory(path))
-                throw std::runtime_error(String("#") + __FUNCTION__ +
-                                         "() The specify path is not directory or not exists: " + path);
+        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
 
     Strings dirs;
 
@@ -634,7 +849,7 @@ public:
         std::ifstream ifs(filename, std::ios_base::binary);
 
         if (!ifs.is_open())
-            throw std::runtime_error("Failed to open the file: " + filename);
+            throw Exception(_fmt("Failed to open the file: \"{}\"", filename));
 
         File file(filenameEx(filename));
         file << ifs;
@@ -660,12 +875,12 @@ public:
         return data_->size();
     }
 
-    bool empty() const { return size() == 0;}
+    bool empty() const { return size() == 0; }
 
     void setName(const String& name)
     {
         if (!isValidFilename(name))
-            throw std::runtime_error("Invalid file name: " + name);
+            throw Exception(_fmt("Invalid file name: \"{}\"", name));
 
         name_ = name;
     }
@@ -687,18 +902,18 @@ public:
         os << *data_;
     }
 
-    void write(const String& path, WritePolicy wp = SKIP,
+    void write(const String& path, bool isOverwrite = false,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         String _path = path + PREFERRED_PATH_SEPARATOR + name_;
 
-        if (isFile(_path) && wp == SKIP)
+        if (!isOverwrite && isFile(_path))
             return;
 
         std::ofstream ofs(_path.data(), openmode);
 
         if (!ofs.is_open())
-            throw std::runtime_error("Failed to open the file: " + path);
+            throw Exception(_fmt("Failed to open the file: \"{}\"", _path));
 
         write(ofs);
 
@@ -729,7 +944,7 @@ public:
     }
 
     template<typename T>
-    File& operator=(const std::vector<T>& data)
+    File& operator=(const Vec<T>& data)
     {
         releaseData();
 
@@ -780,7 +995,7 @@ public:
     }
 
     template<typename T>
-    File& operator<<(const std::vector<T>& data)
+    File& operator<<(const Vec<T>& data)
     {
         size_t size = data.size();
 
@@ -898,7 +1113,7 @@ public:
 
     size_t count(bool isRecursive = true) const { return fileCount(isRecursive) + dirCount(isRecursive); }
 
-    bool empty() const {return size() == 0;}
+    bool empty() const { return size() == 0; }
 
     bool hasFile(const String& name, bool isRecursive = false) const
     {
@@ -933,7 +1148,7 @@ public:
     void setName(const String& name)
     {
         if (!isValidFilename(name))
-            throw std::runtime_error("Invalid file name: " + name);
+            throw Exception(_fmt("Invalid file name: \"{}\"", name));
 
         name_ = name;
     }
@@ -1023,7 +1238,7 @@ public:
         clearDirs();
     }
 
-    void add(File& file, WritePolicy wp = SKIP)
+    void add(File& file, bool isOverwrite = false)
     {
         if (subFiles_ == nullptr)
             subFiles_ = new Vec<File>();
@@ -1031,7 +1246,7 @@ public:
         size_t pos = hasFile_(file.name());
 
         if (pos != NOF_) {
-            if (wp == OVERRIDE)
+            if (isOverwrite)
                 (*subFiles_)[pos] = std::move(file);
 
             return;
@@ -1040,7 +1255,7 @@ public:
         subFiles_->emplace_back(std::move(file));
     }
 
-    void add(Dir& dir, WritePolicy wp = SKIP)
+    void add(Dir& dir, bool isOverwrite = false)
     {
         if (subDirs_ == nullptr)
             subDirs_ = new Vec<Dir>();
@@ -1048,7 +1263,7 @@ public:
         size_t pos = hasDir_(dir.name());
 
         if (pos != NOF_) {
-            if (wp == OVERRIDE)
+            if (isOverwrite)
                 (*subDirs_)[pos] = std::move(dir);
 
             return;
@@ -1057,11 +1272,11 @@ public:
         subDirs_->emplace_back(std::move(dir));
     }
 
-    void add(File&& file, WritePolicy wp = SKIP) { add(file, wp); }
+    void add(File&& file, bool isOverwrite = false) { add(file, isOverwrite); }
 
-    void add(Dir&& dir, WritePolicy wp = SKIP) { add(dir, wp); }
+    void add(Dir&& dir, bool isOverwrite = false) { add(dir, isOverwrite); }
 
-    void write(const String& path, WritePolicy wp = SKIP,
+    void write(const String& path, bool isOverwrite = false,
                std::ios_base::openmode openmode = std::ios_base::binary) const
     {
         String root = String(path) + PREFERRED_PATH_SEPARATOR + name_;
@@ -1070,11 +1285,11 @@ public:
 
         if (subFiles_)
             for (const auto& var : *subFiles_)
-                var.write(root, wp, openmode);
+                var.write(root, isOverwrite, openmode);
 
         if (subDirs_)
             for (const auto& var : *subDirs_)
-                var.write(root, wp);
+                var.write(root, isOverwrite);
     }
 
     Dir copy() const { return Dir(*this); }
@@ -1082,7 +1297,7 @@ public:
     Dir& operator=(const Dir& other)
     {
         name_ = other.name_;
-        
+
         clear();
 
         if (other.subFiles_)
