@@ -359,8 +359,21 @@ BTF_API size_t hardlinkCount(const String& path);
 
 BTF_API String tempDirectory();
 
-BTF_API void forEach(const String& path, void (*func) (const String&),
-                     bool isRecursive = true, bool (*filter) (const String&) = nullptr);
+template<typename Func, typename... Args>
+void forEach(const String& path, bool isRecursive, Func&& func, Args&&... args)
+{
+    if (isRecursive) {
+        for (const auto& var : fs::recursive_directory_iterator(path)) {
+            String path_ = var.path().string()
+            func(path_, std::forward<Args>(args)...);
+        }
+    } else {
+        for (const auto& var : fs::directory_iterator(path)) {
+            String path_ = var.path().string()
+            func(path_, std::forward<Args>(args)...);
+        }
+    }
+}
 
 BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive = true,
                                             bool (*filter) (const String&) = nullptr);
@@ -713,29 +726,6 @@ BTF_API String tempDirectory()
     return fs::temp_directory_path().string();
 }
 
-BTF_API void forEach(const String& path, void (*func) (const String&),
-                     bool isRecursive, bool (*filter) (const String&))
-{
-    if (!isDirectory(path))
-        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
-
-    if (isRecursive) {
-        for (const auto& var : fs::recursive_directory_iterator(path)) {
-            String path = var.path().string();
-
-            if (filter == nullptr || filter(path))
-                func(path);
-        }
-    } else {
-        for (const auto& var : fs::directory_iterator(path)) {
-            String path = var.path().string();
-
-            if (filter == nullptr || filter(path))
-                func(path);
-        }
-    }
-}
-
 BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
@@ -747,23 +737,23 @@ getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 
     if (isRecursive) {
         for (const auto& var : fs::recursive_directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_regular_file() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+            if (var.is_regular_file() && (filter == nullptr || filter(_path)))
+                files.push_back(_path);
 
-            if (var.is_directory() && (filter == nullptr || filter(path)))
-                dirs.push_back(path);
+            if (var.is_directory() && (filter == nullptr || filter(_path)))
+                dirs.push_back(_path);
         }
     } else {
         for (const auto& var : fs::directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_regular_file() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+            if (var.is_regular_file() && (filter == nullptr || filter(_path)))
+                files.push_back(_path);
 
-            if (var.is_directory() && (filter == nullptr || filter(path)))
-                dirs.push_back(path);
+            if (var.is_directory() && (filter == nullptr || filter(_path)))
+                dirs.push_back(_path);
         }
     }
 
@@ -780,17 +770,17 @@ getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&)
 
     if (isRecursive) {
         for (const auto& var : fs::recursive_directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_regular_file() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+            if (var.is_regular_file() && (filter == nullptr || filter(_path)))
+                files.push_back(_path);
         }
     } else {
         for (const auto& var : fs::directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_regular_file() && (filter == nullptr || filter(path)))
-                files.push_back(path);
+            if (var.is_regular_file() && (filter == nullptr || filter(_path)))
+                files.push_back(_path);
         }
     }
 
@@ -807,17 +797,17 @@ getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const Str
 
     if (isRecursive) {
         for (const auto& var : fs::recursive_directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_directory() && (filter == nullptr || filter(path)))
-                dirs.push_back(path);
+            if (var.is_directory() && (filter == nullptr || filter(_path)))
+                dirs.push_back(_path);
         }
     } else {
         for (const auto& var : fs::directory_iterator(path)) {
-            String path = var.path().string();
+            String _path = var.path().string();
 
-            if (var.is_directory() && (filter == nullptr || filter(path)))
-                dirs.push_back(path);
+            if (var.is_directory() && (filter == nullptr || filter(_path)))
+                dirs.push_back(_path);
         }
     }
 
