@@ -359,22 +359,6 @@ BTF_API size_t hardlinkCount(const String& path);
 
 BTF_API String tempDirectory();
 
-template<typename Func, typename... Args>
-void forEach(const String& path, bool isRecursive, Func&& func, Args&&... args)
-{
-    if (isRecursive) {
-        for (const auto& var : fs::recursive_directory_iterator(path)) {
-            String path_ = var.path().string()
-            func(path_, std::forward<Args>(args)...);
-        }
-    } else {
-        for (const auto& var : fs::directory_iterator(path)) {
-            String path_ = var.path().string()
-            func(path_, std::forward<Args>(args)...);
-        }
-    }
-}
-
 BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive = true,
                                             bool (*filter) (const String&) = nullptr);
 
