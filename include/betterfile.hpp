@@ -359,6 +359,9 @@ BTF_API size_t hardlinkCount(const String& path);
 
 BTF_API String tempDirectory();
 
+BTF_API void forEach(const String& path, void (*func) (const String&),
+                     bool isRecursive = true, bool (*filter) (const String&) = nullptr);
+
 BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive = true,
                                             bool (*filter) (const String&) = nullptr);
 
@@ -708,6 +711,29 @@ BTF_API size_t hardlinkCount(const String& path)
 BTF_API String tempDirectory()
 {
     return fs::temp_directory_path().string();
+}
+
+BTF_API void forEach(const String& path, void (*func) (const String&),
+                     bool isRecursive, bool (*filter) (const String&))
+{
+    if (!isDirectory(path))
+        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
+
+    if (isRecursive) {
+        for (const auto& var : fs::recursive_directory_iterator(path)) {
+            String path = var.path().string();
+
+            if (filter == nullptr || filter(path))
+                func(path);
+        }
+    } else {
+        for (const auto& var : fs::directory_iterator(path)) {
+            String path = var.path().string();
+
+            if (filter == nullptr || filter(path))
+                func(path);
+        }
+    }
 }
 
 BTF_API std::pair<Strings, Strings>
