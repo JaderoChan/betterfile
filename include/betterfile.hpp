@@ -353,8 +353,7 @@ BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrit
 
 BTF_API String symlinkTarget(const String& path);
 
-BTF_API void createHardlink(const String& src, const String& dst,
-                            bool isOverwrite = false, bool enableDirectoryHardlink = false);
+BTF_API void createHardlink(const String& src, const String& dst, bool isOverwrite = false);
 
 BTF_API size_t hardlinkCount(const String& path);
 
@@ -656,12 +655,16 @@ BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrit
         throw Exception(_fmt("The specify path not exists. \"{}\"", src));
     }
 
+    deletes(dst);
+
     // Create the parent directory of the destination path first if not exists.
     if (!isDirectory(parentPath(dst)))
         createDirectorys(parentPath(dst));
 
-    deletes(dst);
-    fs::create_symlink(src, dst);
+    if (isFile(src))
+        fs::create_symlink(src, dst);
+    else if (isDirectory(src))
+        fs::create_directory_symlink(src, dst);
 }
 
 BTF_API String symlinkTarget(const String& path)
@@ -669,8 +672,7 @@ BTF_API String symlinkTarget(const String& path)
     return fs::read_symlink(path).string();
 }
 
-BTF_API void createHardlink(const String& src, const String& dst,
-                            bool isOverwrite, bool enableDirectoryHardlink)
+BTF_API void createHardlink(const String& src, const String& dst, bool isOverwrite)
 {
     // If the source path equals the destination path, do nothing.
     if (isEqualPath(src, dst))
@@ -684,27 +686,15 @@ BTF_API void createHardlink(const String& src, const String& dst,
         if (isDirectory(dst))
             throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
 
+        deletes(dst);
+
         // Create the parent directory of the destination path first if not exists.
         if (!isDirectory(parentPath(dst)))
             createDirectorys(parentPath(dst));
 
-        deletes(dst);
         fs::create_hard_link(src, dst);
     } else if (isDirectory(src)) {
-        if (!enableDirectoryHardlink)
-            throw Exception(_fmt("Can't hardlink for directory. \"{}\"", src));
-
-        // If the destination path has a same name file (not directory), throw exception.
-        if (isFile(dst))
-            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
-
-        createDirectorys(dst);
-
-        for (const auto& var : fs::recursive_directory_iterator(src))
-            createHardlink(var.path().string(),
-                            pathcat(dst, String(var.path().string()).substr(src.size())),
-                            isOverwrite,
-                            enableDirectoryHardlink);
+        throw Exception(_fmt("Can't hardlink for directory. \"{}\"", src));
     } else {
         throw Exception(_fmt("The specify path not exists. \"{}\"", src));
     }
