@@ -710,6 +710,7 @@ BTF_API String tempDirectory()
     return fs::temp_directory_path().string();
 }
 
+// @return The pair of files and directorys.
 BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
 {
