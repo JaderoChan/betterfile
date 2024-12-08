@@ -14,8 +14,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,14 +27,17 @@
 
 // Usage:
 // 1. The betterfile is a header-only library, so you don't need to build it.
-// 2. You can use this library by only including the betterfile.hpp file in your project.
+// 2. You can use this library by only including the betterfile.hpp file in your
+// project.
 // 3. You can also make a new .cpp file to your project and add the code below.
-// (This method's aim is detach the implementation from the header file, can be avoid namespace pollution)
+// (This method's aim is detach the implementation from the header file, can be
+// avoid namespace pollution)
 //
 // #define BTF_IMPL
 // #include <betterfile.hpp>
-// 
-// Last you need add the code below to your other location which need use this library.
+//
+// Last you need add the code below to your other location which need use this
+// library.
 //
 // #define BTF_FWD
 // #include <betterfile.hpp>
@@ -43,39 +46,39 @@
 #ifndef BETTERFILE_HPP
 #define BETTERFILE_HPP
 
-#include <cstddef>  // size_t
+#include <cstddef> // size_t
+#include <fstream>
+#include <iostream>
+#include <sstream> // std::stringstream
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
-#include <sstream>  // std::stringstream
-#include <fstream>
-#include <stdexcept>
 
 // Compiler version.
 #ifdef _MSVC_LANG
-#define _BETTERFILE_CPPVERS     _MSVC_LANG
+    #define _BETTERFILE_CPPVERS _MSVC_LANG
 #else
-#define _BETTERFILE_CPPVERS     __cplusplus
+    #define _BETTERFILE_CPPVERS __cplusplus
 #endif // _MSVC_LANG
 
 #if _BETTERFILE_CPPVERS < 201103L
-#error "The betterfile library just useable in c++11 and above."
+    #error "The betterfile library just useable in c++11 and above."
 #endif // _BETTERFILE_CPPVERS < 201103L
 
 // Check C++17 support.
 #if _BETTERFILE_CPPVERS >= 201703L
-#define _BETTERFILE_CPP17
+    #define _BETTERFILE_CPP17
 #endif // BETTERFILE_CPPVERS >= 201703L
 
 #ifdef BTF_IMPL
-#define BTF_API 
+    #define BTF_API
 #else
-#ifdef BTF_FWD
-#define BTF_API extern
-#else
-#define BTF_API inline
-#endif // BTF_FWD
-#endif // BTF_IMPL
+    #ifdef BTF_FWD
+        #define BTF_API extern
+    #else
+        #define BTF_API inline
+    #endif // BTF_FWD
+#endif     // BTF_IMPL
 
 // Betterfile namespace.
 namespace btf
@@ -92,7 +95,7 @@ namespace btf
 using uchar = unsigned char;
 using uint = unsigned int;
 
-template<typename T>
+template <typename T>
 using Vec = std::vector<T>;
 using String = std::string;
 using Strings = Vec<String>;
@@ -112,7 +115,7 @@ constexpr char PREFERRED_PATH_SEPARATOR = LINUX_PATH_SEPARATOR;
 // The invalid characters in filename.
 constexpr const char* FILENAME_INVALID_CHARS = "\\/:*?\"<>|";
 
-}
+} // namespace btf
 
 // Utility functions with not filesystem.
 namespace btf
@@ -125,7 +128,7 @@ inline String pathcat(const String& path1, const String& path2)
 }
 
 // @brief Concatenate multiple paths.
-template<typename... Args>
+template <typename... Args>
 String pathcat(const String& path1, const String& path2, Args&&... paths)
 {
     if (sizeof...(paths) == 0)
@@ -157,7 +160,7 @@ inline String quotePath(const String& path)
     return "\"" + path + "\"";
 }
 
-template<typename T>
+template <typename T>
 String _fmt(const String& fmt, const T& arg)
 {
     std::stringstream ss;
@@ -199,7 +202,7 @@ String _fmt(const String& fmt, const T& arg)
     return ss.str();
 }
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 String _fmt(const String& fmt, const T& arg, Args&&... args)
 {
     std::stringstream ss;
@@ -241,29 +244,31 @@ String _fmt(const String& fmt, const T& arg, Args&&... args)
     return ss.str();
 }
 
-}
+} // namespace btf
 
 #ifdef _BETTERFILE_CPP17
-#ifndef BTF_FWD
-#include <filesystem>
+    #ifndef BTF_FWD
+        #include <filesystem>
+
 namespace btf
 {
 
 namespace fs = std::filesystem;
 
 }
-#endif // !BTF_FWD
+    #endif // !BTF_FWD
 #else
-#ifndef BTF_FWD
-#include <ghc/filesystem.hpp>
+    #ifndef BTF_FWD
+        #include <ghc/filesystem.hpp>
+
 namespace btf
 {
 
 namespace fs = ghc::filesystem;
 
 }
-#endif // !BTF_FWD
-#endif // _BETTERFILE_CPP17
+    #endif // !BTF_FWD
+#endif     // _BETTERFILE_CPP17
 
 // Declaration of utility functions with filesystem.
 namespace btf
@@ -292,16 +297,20 @@ BTF_API String extension(const String& path);
 
 BTF_API bool isExists(const String& path);
 
-// @return If the path is exists and path target is a regular file return true, else return false.
+// @return If the path is exists and path target is a regular file return true,
+// else return false.
 BTF_API bool isFile(const String& path);
 
-// @return If the path is exists and path target is a directory return true, else return false.
+// @return If the path is exists and path target is a directory return true,
+// else return false.
 BTF_API bool isDirectory(const String& path);
 
-// @return If the path is exists and path target is a symlink return true, else return false.
+// @return If the path is exists and path target is a symlink return true, else
+// return false.
 BTF_API bool isSymlink(const String& path);
 
-// @return If the path is a empty file or directory return true, else return false.
+// @return If the path is a empty file or directory return true, else return
+// false.
 // @note If the path is not exists, throw exception.
 BTF_API bool isEmpty(const String& path);
 
@@ -318,7 +327,8 @@ BTF_API String absolute(const String& path);
 
 BTF_API bool isEqualPath(const String& path1, const String& path2);
 
-// @brief Check if filesystem entity (file, directory, symlink, hardlink) of two paths is equivalent.
+// @brief Check if filesystem entity (file, directory, symlink, hardlink) of two
+// paths is equivalent.
 BTF_API bool isEqualFileSystemEntity(const String& path1, const String& path2);
 
 // @return The size of the file or directory.
@@ -360,17 +370,15 @@ BTF_API size_t hardlinkCount(const String& path);
 BTF_API String tempDirectory();
 
 BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive = true,
-                                            bool (*filter) (const String&) = nullptr);
+                                            bool (*filter)(const String&) = nullptr);
 
-BTF_API Strings getAllFiles(const String& path, bool isRecursive = true,
-                            bool (*filter) (const String&) = nullptr);
+BTF_API Strings getAllFiles(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
-BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true,
-                                 bool (*filter) (const String&) = nullptr);
+BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
 #endif // !BTF_IMPL
 
-}
+} // namespace btf
 
 // Implementation of utility functions with filesystem.
 namespace btf
@@ -521,32 +529,42 @@ BTF_API void copy(const String& src, const String& dst, bool isOverwrite)
         return;
 
     if (isFile(src)) {
-        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        // If the destination path exists same name file or directory and
+        // specify not overwrite, do nothing.
         if (!isOverwrite && isExists(dst))
             return;
 
-        // If the destination path has a same name directory (not file), throw exception.
+        // If the destination path has a same name directory (not file), throw
+        // exception.
         if (isDirectory(dst))
-            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "directory. \"{}\" -> \"{}\"",
+                                 src, dst));
 
-        // Create the parent directory of the destination path first if not exists.
+        // Create the parent directory of the destination path first if not
+        // exists.
         if (!isDirectory(parentPath(dst)))
             createDirectorys(parentPath(dst));
 
         // If the destination path is a file, delete it first.
-        // #deletes can automatically handle the case of not exists deleted file.
+        // #deletes can automatically handle the case of not exists deleted
+        // file.
         deletes(dst);
         fs::copy_file(src, dst);
     } else if (isDirectory(src)) {
-        // If the destination path has a same name file (not directory), throw exception.
+        // If the destination path has a same name file (not directory), throw
+        // exception.
         if (isFile(dst))
-            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "file. \"{}\" -> \"{}\"",
+                                 src, dst));
 
         // If attempt to copy a directory to a subdirectory, throw exception.
         if (isSubPath(dst, src))
             throw Exception(_fmt("Can't copy directory to a subdirectory. \"{}\" -> \"{}\"", src, dst));
 
-        // For each file in the source directory, copy it to the destination directory.
+        // For each file in the source directory, copy it to the destination
+        // directory.
         for (const auto& var : fs::recursive_directory_iterator(src)) {
             if (var.is_regular_file())
                 copy(var.path().string(), pathcat(dst, var.path().string().substr(src.size())), isOverwrite);
@@ -574,23 +592,31 @@ BTF_API void move(const String& src, const String& dst, bool isOverwrite)
         return;
 
     if (isFile(src)) {
-        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        // If the destination path exists same name file or directory and
+        // specify not overwrite, do nothing.
         if (!isOverwrite && isExists(dst))
             return;
 
-        // If the destination path has a same name directory (not file), throw exception.
+        // If the destination path has a same name directory (not file), throw
+        // exception.
         if (isDirectory(dst))
-            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "directory. \"{}\" -> \"{}\"",
+                                 src, dst));
 
-        // Create the parent directory of the destination path first if not exists.
+        // Create the parent directory of the destination path first if not
+        // exists.
         if (!isDirectory(parentPath(dst)))
             createDirectorys(parentPath(dst));
 
         fs::rename(src, dst);
     } else if (isDirectory(src)) {
-        // If the destination path has a same name file (not directory), throw exception.
+        // If the destination path has a same name file (not directory), throw
+        // exception.
         if (isFile(dst))
-            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "file. \"{}\" -> \"{}\"",
+                                 src, dst));
 
         // If attempt to move a directory to a subdirectory, throw exception.
         if (isSubPath(dst, src))
@@ -639,18 +665,25 @@ BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrit
     if (isEqualPath(src, dst))
         return;
 
-    // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+    // If the destination path exists same name file or directory and specify
+    // not overwrite, do nothing.
     if (!isOverwrite && isExists(dst))
         return;
 
     if (isFile(src)) {
-        // If the destination path has a same name directory (not file), throw exception.
+        // If the destination path has a same name directory (not file), throw
+        // exception.
         if (isDirectory(dst))
-            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "directory. \"{}\" -> \"{}\"",
+                                 src, dst));
     } else if (isDirectory(src)) {
-        // If the destination path has a same name file (not directory), throw exception.
+        // If the destination path has a same name file (not directory), throw
+        // exception.
         if (isFile(dst))
-            throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "file. \"{}\" -> \"{}\"",
+                                 src, dst));
     } else {
         throw Exception(_fmt("The specify path not exists. \"{}\"", src));
     }
@@ -682,13 +715,17 @@ BTF_API void createHardlink(const String& src, const String& dst, bool isOverwri
         if (!isOverwrite && isExists(dst))
             return;
 
-        // If the destination path has a same name directory (not file), throw exception.
+        // If the destination path has a same name directory (not file), throw
+        // exception.
         if (isDirectory(dst))
-            throw Exception(_fmt("The destination path contains same name directory. \"{}\" -> \"{}\"", src, dst));
+            throw Exception(_fmt("The destination path contains same name "
+                                 "directory. \"{}\" -> \"{}\"",
+                                 src, dst));
 
         deletes(dst);
 
-        // Create the parent directory of the destination path first if not exists.
+        // Create the parent directory of the destination path first if not
+        // exists.
         if (!isDirectory(parentPath(dst)))
             createDirectorys(parentPath(dst));
 
@@ -710,8 +747,7 @@ BTF_API String tempDirectory()
     return fs::temp_directory_path().string();
 }
 
-BTF_API std::pair<Strings, Strings>
-getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
+BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -744,8 +780,7 @@ getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
     return { files, dirs };
 }
 
-BTF_API Strings
-getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&))
+BTF_API Strings getAllFiles(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -771,8 +806,7 @@ getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&)
     return files;
 }
 
-BTF_API Strings
-getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const String&))
+BTF_API Strings getAllDirectorys(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -800,7 +834,7 @@ getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const Str
 
 #endif // !BTF_FWD
 
-}
+} // namespace btf
 
 // Classes.
 namespace btf
@@ -932,7 +966,7 @@ public:
         return *this;
     }
 
-    template<typename T>
+    template <typename T>
     File& operator=(const Vec<T>& data)
     {
         releaseData();
@@ -983,7 +1017,7 @@ public:
         return *this;
     }
 
-    template<typename T>
+    template <typename T>
     File& operator<<(const Vec<T>& data)
     {
         size_t size = data.size();
@@ -1360,6 +1394,6 @@ private:
 
 #endif // !BTF_IMPL
 
-}
+} // namespace btf
 
 #endif // !BETTERFILE_HPP
