@@ -56,29 +56,29 @@
 
 // Compiler version.
 #ifdef _MSVC_LANG
-    #define _BETTERFILE_CPPVERS _MSVC_LANG
+#define _BETTERFILE_CPPVERS _MSVC_LANG
 #else
-    #define _BETTERFILE_CPPVERS __cplusplus
+#define _BETTERFILE_CPPVERS __cplusplus
 #endif // _MSVC_LANG
 
 #if _BETTERFILE_CPPVERS < 201103L
-    #error "The betterfile library just useable in c++11 and above."
+#error "The betterfile library just useable in c++11 and above."
 #endif // _BETTERFILE_CPPVERS < 201103L
 
 // Check C++17 support.
 #if _BETTERFILE_CPPVERS >= 201703L
-    #define _BETTERFILE_CPP17
+#define _BETTERFILE_CPP17
 #endif // BETTERFILE_CPPVERS >= 201703L
 
 #ifdef BTF_IMPL
-    #define BTF_API
+#define BTF_API
 #else
-    #ifdef BTF_FWD
-        #define BTF_API extern
-    #else
-        #define BTF_API inline
-    #endif // BTF_FWD
-#endif     // BTF_IMPL
+#ifdef BTF_FWD
+#define BTF_API extern
+#else
+#define BTF_API inline
+#endif // BTF_FWD
+#endif // BTF_IMPL
 
 // Betterfile namespace.
 namespace btf
@@ -247,8 +247,8 @@ String _fmt(const String& fmt, const T& arg, Args&&... args)
 } // namespace btf
 
 #ifdef _BETTERFILE_CPP17
-    #ifndef BTF_FWD
-        #include <filesystem>
+#ifndef BTF_FWD
+#include <filesystem>
 
 namespace btf
 {
@@ -256,10 +256,10 @@ namespace btf
 namespace fs = std::filesystem;
 
 }
-    #endif // !BTF_FWD
+#endif // !BTF_FWD
 #else
-    #ifndef BTF_FWD
-        #include <ghc/filesystem.hpp>
+#ifndef BTF_FWD
+#include <ghc/filesystem.hpp>
 
 namespace btf
 {
@@ -267,8 +267,8 @@ namespace btf
 namespace fs = ghc::filesystem;
 
 }
-    #endif // !BTF_FWD
-#endif     // _BETTERFILE_CPP17
+#endif // !BTF_FWD
+#endif // _BETTERFILE_CPP17
 
 // Declaration of utility functions with filesystem.
 namespace btf
