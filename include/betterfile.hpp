@@ -359,6 +359,7 @@ BTF_API size_t hardlinkCount(const String& path);
 
 BTF_API String tempDirectory();
 
+// @return The pair of files and drietorys.
 BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
