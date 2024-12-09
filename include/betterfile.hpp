@@ -33,7 +33,7 @@
 //
 // #define BTF_IMPL
 // #include <betterfile.hpp>
-// 
+//
 // Last you need add the code below to your other location which need use this library.
 //
 // #define BTF_FWD
@@ -92,7 +92,7 @@ namespace btf
 using uchar = unsigned char;
 using uint = unsigned int;
 
-template<typename T>
+template <typename T>
 using Vec = std::vector<T>;
 using String = std::string;
 using Strings = Vec<String>;
@@ -125,7 +125,7 @@ inline String pathcat(const String& path1, const String& path2)
 }
 
 // @brief Concatenate multiple paths.
-template<typename... Args>
+template <typename... Args>
 String pathcat(const String& path1, const String& path2, Args&&... paths)
 {
     if (sizeof...(paths) == 0)
@@ -157,7 +157,7 @@ inline String quotePath(const String& path)
     return "\"" + path + "\"";
 }
 
-template<typename T>
+template <typename T>
 String _fmt(const String& fmt, const T& arg)
 {
     std::stringstream ss;
@@ -199,7 +199,7 @@ String _fmt(const String& fmt, const T& arg)
     return ss.str();
 }
 
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 String _fmt(const String& fmt, const T& arg, Args&&... args)
 {
     std::stringstream ss;
@@ -359,14 +359,12 @@ BTF_API size_t hardlinkCount(const String& path);
 
 BTF_API String tempDirectory();
 
-BTF_API std::pair<Strings, Strings> getAlls(const String& path, bool isRecursive = true,
-                                            bool (*filter) (const String&) = nullptr);
+BTF_API std::pair<Strings, Strings>
+getAlls(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
-BTF_API Strings getAllFiles(const String& path, bool isRecursive = true,
-                            bool (*filter) (const String&) = nullptr);
+BTF_API Strings getAllFiles(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
-BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true,
-                                 bool (*filter) (const String&) = nullptr);
+BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true, bool (*filter)(const String&) = nullptr);
 
 #endif // !BTF_IMPL
 
@@ -712,7 +710,7 @@ BTF_API String tempDirectory()
 
 // @return The pair of files and directorys.
 BTF_API std::pair<Strings, Strings>
-getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
+getAlls(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -745,8 +743,7 @@ getAlls(const String& path, bool isRecursive, bool (*filter) (const String&))
     return { files, dirs };
 }
 
-BTF_API Strings
-getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&))
+BTF_API Strings getAllFiles(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -772,8 +769,7 @@ getAllFiles(const String& path, bool isRecursive, bool (*filter) (const String&)
     return files;
 }
 
-BTF_API Strings
-getAllDirectorys(const String& path, bool isRecursive, bool (*filter) (const String&))
+BTF_API Strings getAllDirectorys(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
         throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
@@ -933,7 +929,7 @@ public:
         return *this;
     }
 
-    template<typename T>
+    template <typename T>
     File& operator=(const Vec<T>& data)
     {
         releaseData();
@@ -984,7 +980,7 @@ public:
         return *this;
     }
 
-    template<typename T>
+    template <typename T>
     File& operator<<(const Vec<T>& data)
     {
         size_t size = data.size();
