@@ -112,7 +112,7 @@ constexpr char PREFERRED_PATH_SEPARATOR = LINUX_PATH_SEPARATOR;
 // The invalid characters in filename.
 constexpr const char* FILENAME_INVALID_CHARS = "\\/:*?\"<>|";
 
-}
+} // namespace btf
 
 // Utility functions with not filesystem.
 namespace btf
@@ -241,7 +241,7 @@ String _fmt(const String& fmt, const T& arg, Args&&... args)
     return ss.str();
 }
 
-}
+} // namespace btf
 
 #ifdef _BETTERFILE_CPP17
 #ifndef BTF_FWD
@@ -368,7 +368,7 @@ BTF_API Strings getAllDirectorys(const String& path, bool isRecursive = true, bo
 
 #endif // !BTF_IMPL
 
-}
+} // namespace btf
 
 // Implementation of utility functions with filesystem.
 namespace btf
@@ -797,7 +797,7 @@ BTF_API Strings getAllDirectorys(const String& path, bool isRecursive, bool (*fi
 
 #endif // !BTF_FWD
 
-}
+} // namespace btf
 
 // Classes.
 namespace btf
@@ -1357,6 +1357,6 @@ private:
 
 #endif // !BTF_IMPL
 
-}
+} // namespace btf
 
 #endif // !BETTERFILE_HPP
