@@ -492,7 +492,7 @@ BTF_API size_t sizes(const String& path)
 
         return rslt;
     } else {
-        throw Exception(_fmt("The specify path not exists. \"{}\"", path));
+        throw Exception(_fmt("The specified path not exists. \"{}\"", path));
     }
 }
 
@@ -520,7 +520,7 @@ BTF_API void copy(const String& src, const String& dst, bool isOverwrite)
         return;
 
     if (isFile(src)) {
-        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        // If the destination path exists same name file or directory and specified not overwrite, do nothing.
         if (!isOverwrite && isExists(dst))
             return;
 
@@ -553,7 +553,7 @@ BTF_API void copy(const String& src, const String& dst, bool isOverwrite)
                 createDirectorys(pathcat(dst, var.path().string().substr(src.size())));
         }
     } else {
-        throw Exception(_fmt("The specify source path not exists. \"{}\"", src));
+        throw Exception(_fmt("The specified source path not exists. \"{}\"", src));
     }
 }
 
@@ -573,7 +573,7 @@ BTF_API void move(const String& src, const String& dst, bool isOverwrite)
         return;
 
     if (isFile(src)) {
-        // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+        // If the destination path exists same name file or directory and specified not overwrite, do nothing.
         if (!isOverwrite && isExists(dst))
             return;
 
@@ -610,7 +610,7 @@ BTF_API void move(const String& src, const String& dst, bool isOverwrite)
         if (fs::is_empty(src))
             fs::remove(src);
     } else {
-        throw Exception(_fmt("The specify source path not exists. \"{}\"", src));
+        throw Exception(_fmt("The specified source path not exists. \"{}\"", src));
     }
 }
 
@@ -638,7 +638,7 @@ BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrit
     if (isEqualPath(src, dst))
         return;
 
-    // If the destination path exists same name file or directory and specify not overwrite, do nothing.
+    // If the destination path exists same name file or directory and specified not overwrite, do nothing.
     if (!isOverwrite && isExists(dst))
         return;
 
@@ -651,7 +651,7 @@ BTF_API void createSymlink(const String& src, const String& dst, bool isOverwrit
         if (isFile(dst))
             throw Exception(_fmt("The destination path contains same name file. \"{}\" -> \"{}\"", src, dst));
     } else {
-        throw Exception(_fmt("The specify path not exists. \"{}\"", src));
+        throw Exception(_fmt("The specified path not exists. \"{}\"", src));
     }
 
     deletes(dst);
@@ -695,7 +695,7 @@ BTF_API void createHardlink(const String& src, const String& dst, bool isOverwri
     } else if (isDirectory(src)) {
         throw Exception(_fmt("Can't hardlink for directory. \"{}\"", src));
     } else {
-        throw Exception(_fmt("The specify path not exists. \"{}\"", src));
+        throw Exception(_fmt("The specified path not exists. \"{}\"", src));
     }
 }
 
@@ -714,7 +714,7 @@ BTF_API std::pair<Strings, Strings>
 getAlls(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
-        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
+        throw Exception(_fmt("The specified path is not directory or not exists. \"{}\"", path));
 
     Strings files;
     Strings dirs;
@@ -747,7 +747,7 @@ getAlls(const String& path, bool isRecursive, bool (*filter)(const String&))
 BTF_API Strings getAllFiles(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
-        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
+        throw Exception(_fmt("The specified path is not directory or not exists. \"{}\"", path));
 
     Strings files;
 
@@ -773,7 +773,7 @@ BTF_API Strings getAllFiles(const String& path, bool isRecursive, bool (*filter)
 BTF_API Strings getAllDirectorys(const String& path, bool isRecursive, bool (*filter)(const String&))
 {
     if (!isDirectory(path))
-        throw Exception(_fmt("The specify path is not directory or not exists. \"{}\"", path));
+        throw Exception(_fmt("The specified path is not directory or not exists. \"{}\"", path));
 
     Strings dirs;
 
