@@ -47,7 +47,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <sstream>  // std::stringstream
+#include <sstream>  // stringstream
 #include <fstream>
 #include <stdexcept>
 
@@ -318,8 +318,8 @@ BTF_API String absolute(const String& path);
 
 BTF_API bool isEqualPath(const String& path1, const String& path2);
 
-// @brief Check if filesystem entity (file, directory, symlink, hardlink) of two paths is equivalent.
-BTF_API bool isEqualFileSystemEntity(const String& path1, const String& path2);
+// @brief Check if filesystem entity (file, directory, symlink, hardlink) of two paths is same one.
+BTF_API bool isSameFileSystemEntity(const String& path1, const String& path2);
 
 // @return The size of the file or directory.
 BTF_API size_t sizes(const String& path);
@@ -441,10 +441,10 @@ BTF_API bool isEmpty(const String& path)
 
 BTF_API bool isSubPath(const String& path, const String& base)
 {
-    String path_ = normalize(absolute(path));
-    String base_ = normalize(absolute(base));
+    String _path = normalize(absolute(path));
+    String _base = normalize(absolute(base));
 
-    return path_.substr(0, base_.size()) == base_;
+    return _path.substr(0, _base.size()) == _base;
 }
 
 BTF_API bool isRelative(const String& path)
@@ -469,13 +469,13 @@ BTF_API String absolute(const String& path)
 
 BTF_API bool isEqualPath(const String& path1, const String& path2)
 {
-    String path1_ = normalize(absolute(path1));
-    String path2_ = normalize(absolute(path2));
+    String _path1 = normalize(absolute(path1));
+    String _path2 = normalize(absolute(path2));
 
-    return path1_ == path2_;
+    return _path1 == _path2;
 }
 
-BTF_API bool isEqualFileSystemEntity(const String& path1, const String& path2)
+BTF_API bool isSameFileSystemEntity(const String& path1, const String& path2)
 {
     return fs::equivalent(path1, path2);
 }
